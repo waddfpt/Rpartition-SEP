@@ -1,0 +1,78 @@
+{
+  "appConfig": {
+    "version": "1.0",
+    "lastUpdated": "2026-06-27",
+    "dataSource": "_r_partition_sep_2026-06-25.json",
+    "autoLoad": true
+  },
+  "display": {
+    "title": "RÉPARTITION SEP",
+    "subtitle": "Gestion des services enseignants",
+    "year": "2024-2025",
+    "school": ""
+  },
+  "ui": {
+    "theme": "light",
+    "language": "fr",
+    "defaultTab": "table",
+    "enableExport": true,
+    "enableImport": true
+  },
+  "security": {
+    "requirePassword": true,
+    "passwordProtection": true,
+    "allowLocking": true
+  },
+  "features": {
+    "editMode": true,
+    "pdfExport": true,
+    "jsonImport": true,
+    "jsonExport": true,
+    "synthese": true,
+    "filtering": true,
+    "search": true
+  },
+  "dataFields": {
+    "teachers": {
+      "required": ["id", "name", "quota", "group"],
+      "types": {
+        "id": "string",
+        "name": "string",
+        "quota": "number",
+        "group": "string"
+      }
+    },
+    "rows": {
+      "required": ["cls", "disc", "stms", "biotech", "he", "clent", "g", "nbg", "hp", "vals"],
+      "types": {
+        "cls": "string",
+        "disc": "string",
+        "stms": "number",
+        "biotech": "number",
+        "he": "number",
+        "clent": "number",
+        "g": "number",
+        "nbg": "number",
+        "hp": "number",
+        "vals": "object"
+      }
+    }
+  },
+  "paths": {
+    "dataFile": "_r_partition_sep_2026-06-25.json",
+    "configFile": ".github/config.json",
+    "backupDir": ".github/backups/"
+  },
+  "defaults": {
+    "quotaFormat": "number",
+    "hoursFormat": "decimal",
+    "dateFormat": "DD/MM/YYYY",
+    "timeFormat": "HH:MM"
+  },
+  "notifications": {
+    "autoSave": true,
+    "autoSaveInterval": 300000,
+    "showSaveStatus": true,
+    "toastMessages": true
+  }
+}
