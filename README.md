@@ -1,2 +1,2 @@
-# Rpartition-SEP
+# Repartition-SEP
 Service enseignant SEP
