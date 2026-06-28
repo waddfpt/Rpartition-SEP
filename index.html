@@ -1,0 +1,3460 @@
+<!DOCTYPE html>
+<!-- ═══════════════════════════════════════════════════════════
+     RÉPARTITION DES SERVICES ENSEIGNANTS — SEP
+     Version  : 1.0
+     Date     : 24 juin 2026
+     Auteur   : Claude (Anthropic) — généré sur claude.ai
+     ═══════════════════════════════════════════════════════════ -->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDFPT-WA | Répartition des services</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8edf3;
+    --border: #c8d4e0;
+    --accent: #1d6fa4;
+    --accent2: #0f5a8a;
+    --warn: #b45309;
+    --danger: #c0392b;
+    --ok: #1a7a4a;
+    --text: #1e2d3d;
+    --muted: #6b7f93;
+    --header-bg: #e8ecf0;
+    --row-alt: #f7fafd;
+    --col-hover: rgba(29,111,164,0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Calibri', 'Carlito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 13px;
+  }
+
+  /* ─── LAYOUT ─── */
+  #app { display: flex; flex-direction: column; height: 100vh; }
+
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 18px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .topbar h1 {
+    font-family: 'Calibri', 'Carlito', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent2);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .topbar .subtitle {
+    font-size: 11px; color: var(--muted);
+    font-family: 'Calibri', 'Carlito', sans-serif;
+  }
+
+  .spacer { flex: 1; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'Calibri', 'Carlito', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.08); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #2563eb; }
+  .btn.locked { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .btn.locked:hover { background: #a8332a; }
+  .btn.success { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .btn.success:hover { background: #059669; }
+  .btn.warn { background: var(--warn); border-color: var(--warn); color: #000; }
+
+  .tabs {
+    display: flex; gap: 2px;
+    padding: 8px 18px 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tab {
+    padding: 7px 16px;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); background: var(--surface2); }
+  .tab.active { color: var(--accent2); background: var(--bg); border-color: var(--border); }
+  .tab.tab-locked { color: var(--muted); cursor: not-allowed; opacity: 0.55; position: relative; }
+  .tab.tab-locked::after { content: ' 🔒'; font-size: 10px; }
+  .tab.tab-locked:hover { background: rgba(192,57,43,0.08); color: var(--danger); }
+
+  .tab-content { display: none; flex: 1; overflow: auto; }
+  .tab-content.active { display: flex; flex-direction: column; }
+
+  /* ─── MAIN TABLE TAB ─── */
+  .table-wrapper { flex: 1; overflow: auto; position: relative; }
+
+  table.repartition {
+    border-collapse: collapse;
+    font-size: 11.5px;
+    font-family: 'Calibri', 'Carlito', sans-serif;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  table.repartition thead { position: sticky; top: 0; z-index: 20; }
+
+  /* ── ROW 1 : colonnes fixes (DIVISIONS, DISCIPLINE, horaires) ── gris clair */
+  table.repartition th {
+    background: #e8ecf0;
+    color: #2c3e50;
+    font-weight: 700;
+    padding: 6px 8px;
+    border: 1px solid #c0cad4;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 10.5px;
+  }
+
+  /* ── ROW 2 : bandeaux groupes d'enseignants ── orange clair */
+  table.repartition th.disc-group {
+    background: #fde8cc;
+    color: #7a3b00;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    border: 1px solid #5a6470;
+    border-top: 2px solid #5a6470;
+    border-bottom: 2px solid #5a6470;
+  }
+
+  /* ── ROW 4 : quotas ── bleu très clair */
+  table.repartition th.quota {
+    font-size: 10px;
+    color: #1a4a70;
+    background: #e8f4fd;
+    border: 1px solid #5a6470;
+    border-bottom: 2px solid #5a6470;
+    font-weight: 700;
+  }
+
+  table.repartition td {
+    border: 1px solid #999;
+    border-bottom: 1.5px solid #5a6470;
+    padding: 3px 7px;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 52px;
+
+  }
+
+  table.repartition td.val-cell {
+    cursor: pointer;
+    transition: background 0.1s;
+    font-family: 'Calibri', 'Carlito', sans-serif;
+  }
+  table.repartition td.val-cell:hover { background: rgba(59,130,246,0.18) !important; outline: 1px solid var(--accent); }
+
+  /* ─── ÉTAT VERROUILLÉ ─── */
+  body.app-locked table.repartition td.val-cell { cursor: not-allowed; }
+  body.app-locked table.repartition td.val-cell:hover { background: rgba(192,57,43,0.10) !important; outline: 1px dashed var(--danger); }
+  table.repartition td.val-cell.has-val { color: #0d6efd; font-weight: 700; }
+  table.repartition td.val-cell input {
+    width: 100%; border: none; background: transparent; text-align: center;
+    color: #0d6efd; font-weight: 700; font-family: 'Calibri', 'Carlito', sans-serif;
+    font-size: 11.5px; outline: none; min-width: 40px;
+  }
+
+  .row-total { background: #d6e4f0 !important; color: var(--accent2) !important; font-weight: 700; }
+  .row-hsa-ok    { color: var(--ok) !important; font-weight: 700; background: #eaf7f0 !important; }
+  .row-hsa-warn  { color: var(--warn) !important; font-weight: 700; background: #fef6e8 !important; }
+  .row-hsa-danger{ color: var(--danger) !important; font-weight: 700; background: #fde8e6 !important; }
+
+  /* ══════════════════════════════════════════════════════════════
+     COLONNES FIGÉES — volet fixe jusqu'à H/P inclus
+     Largeurs : DIVISIONS(82) DISCIPLINE(260) CTRL(38)
+                STMS(38) BIO(38) H/E(34) Cl.E.(34) G(28) NB/G(34) H/P(34)
+     left cumulés : 0 / 82 / 342 / 380 / 418 / 456 / 490 / 524 / 552 / 586
+     ══════════════════════════════════════════════════════════════ */
+
+  /* ─── THEAD sticky : reste en haut lors du scroll vertical ─── */
+  table.repartition thead { position: sticky; top: 0; z-index: 40; }
+
+  /* ─── TH figés : colonnes fixes dans le thead ─── */
+  th.col-class {
+    position: sticky; left: 0; z-index: 50;
+    background: #e8ecf0; min-width: 82px; max-width: 82px;
+    color: #2c3e50; border: 1px solid #c0cad4;
+  }
+  th.col-disc {
+    position: sticky; left: 82px; z-index: 50;
+    background: #e8ecf0; min-width: 260px;
+    color: #2c3e50; border: 1px solid #c0cad4;
+  }
+  th.sticky-ctrl {
+    position: sticky; left: 342px; z-index: 50;
+    background: #dde3ea; min-width: 38px; max-width: 38px;
+    color: #2c3e50; border: 1px solid #c0cad4;
+  }
+  th.sticky-stms  { position: sticky; left: 380px; z-index: 50; background: #e8ecf0; min-width:38px; max-width:38px; }
+  th.sticky-bio   { position: sticky; left: 418px; z-index: 50; background: #e8ecf0; min-width:38px; max-width:38px; }
+  th.sticky-he    { position: sticky; left: 456px; z-index: 50; background: #e8ecf0; min-width:34px; max-width:34px; }
+  th.sticky-cl    { position: sticky; left: 490px; z-index: 50; background: #e8ecf0; min-width:34px; max-width:34px; }
+  th.sticky-g     { position: sticky; left: 524px; z-index: 50; background: #e8ecf0; min-width:28px; max-width:28px; }
+  th.sticky-nbg   { position: sticky; left: 552px; z-index: 50; background: #e8ecf0; min-width:34px; max-width:34px; }
+  th.sticky-hp    { position: sticky; left: 586px; z-index: 50; background: #dce8f5; min-width:34px; max-width:34px; color:var(--accent2); font-weight:700; border-bottom:2px solid #5a6470; }
+
+  /* ─── TD figés : colonnes fixes dans le tbody ─── */
+  td.col-class {
+    background: #ffffff; color: var(--accent2); font-weight: 700; font-size: 11px;
+    min-width: 82px; max-width: 82px; text-align: left;
+    position: sticky; left: 0; z-index: 15;
+  }
+  td.col-disc {
+    background: #ffffff; color: var(--text); min-width: 260px;
+    text-align: left; position: sticky; left: 82px; z-index: 15; font-size: 11px;
+  }
+  td.sticky-ctrl  { position: sticky; left: 342px; z-index: 15; background: #f5f7fa; }
+  td.sticky-stms  { position: sticky; left: 380px; z-index: 15; background: #ffffff; }
+  td.sticky-bio   { position: sticky; left: 418px; z-index: 15; background: #ffffff; }
+  td.sticky-he    { position: sticky; left: 456px; z-index: 15; background: #ffffff; }
+  td.sticky-cl    { position: sticky; left: 490px; z-index: 15; background: #ffffff; }
+  td.sticky-g     { position: sticky; left: 524px; z-index: 15; background: #ffffff; }
+  td.sticky-nbg   { position: sticky; left: 552px; z-index: 15; background: #ffffff; }
+  td.sticky-hp    { position: sticky; left: 586px; z-index: 15; background: #eef5fb; font-weight:700; color:var(--accent2); }
+
+  /* Alternance sur lignes paires — doit écraser le fond des td figés */
+  table.repartition tr:nth-child(even) td { background: var(--row-alt); }
+  table.repartition tr:nth-child(even) td.col-class,
+  table.repartition tr:nth-child(even) td.col-disc { background: #edf3fa; }
+  table.repartition tr:nth-child(even) td.sticky-ctrl { background: #edf0f4; }
+  table.repartition tr:nth-child(even) td.sticky-stms,
+  table.repartition tr:nth-child(even) td.sticky-bio,
+  table.repartition tr:nth-child(even) td.sticky-he,
+  table.repartition tr:nth-child(even) td.sticky-cl,
+  table.repartition tr:nth-child(even) td.sticky-g,
+  table.repartition tr:nth-child(even) td.sticky-nbg { background: var(--row-alt); }
+  table.repartition tr:nth-child(even) td.sticky-hp   { background: #e4f0fa; }
+
+  /* ─── HOVER : fond opaque obligatoire sur les sticky cells pour éviter la superposition ─── */
+  /* La couleur semi-transparente --col-hover laisse filtrer les fonds adjacents sur les sticky.
+     On utilise une couleur opaque calculée pour les sticky cells (équivalent RGBA sur fond blanc) */
+  table.repartition tr:hover td { background: #eef4fb !important; }
+  table.repartition tr:hover td.col-class,
+  table.repartition tr:hover td.col-disc  { background: #dcedf8 !important; }
+  table.repartition tr:hover td.sticky-ctrl { background: #dde6f0 !important; }
+  table.repartition tr:hover td.sticky-stms,
+  table.repartition tr:hover td.sticky-bio,
+  table.repartition tr:hover td.sticky-he,
+  table.repartition tr:hover td.sticky-cl,
+  table.repartition tr:hover td.sticky-g,
+  table.repartition tr:hover td.sticky-nbg { background: #eef4fb !important; }
+  table.repartition tr:hover td.sticky-hp  { background: #d8ecf8 !important; }
+  .summary-row td {
+    background: #d6e4f0 !important;
+    font-weight: 700;
+    color: var(--accent2);
+    font-size: 11px;
+  }
+  .summary-row.ecart td.neg { color: var(--danger); }
+  .summary-row.ecart td.pos { color: var(--ok); }
+
+  /* ─── SETTINGS TAB ─── */
+  .settings-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .card h3 { font-size: 13px; font-weight: 600; color: var(--accent2); margin-bottom: 14px; }
+
+  .field-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .field-row label { width: 120px; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .field-row input, .field-row select {
+    flex: 1;
+    background: #f4f7fa;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: 'Calibri', 'Carlito', sans-serif;
+  }
+  .field-row input:focus, .field-row select:focus {
+    outline: none; border-color: var(--accent);
+  }
+
+  .teacher-list { max-height: 360px; overflow-y: auto; }
+  .teacher-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .teacher-item .tname {
+    flex: 1; font-size: 12px; font-family: 'Calibri', 'Carlito', sans-serif;
+  }
+  .teacher-item input {
+    width: 55px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent2);
+    padding: 3px 6px;
+    font-size: 12px;
+    text-align: center;
+    font-family: 'Calibri', 'Carlito', sans-serif;
+  }
+  .teacher-item .del-btn {
+    background: none; border: none; color: var(--danger); cursor: pointer; font-size: 14px;
+    padding: 2px 5px; border-radius: 3px;
+  }
+  .teacher-item .del-btn:hover { background: rgba(239,68,68,0.15); }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.35);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    min-width: 320px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  }
+  .modal h3 { font-size: 14px; color: var(--accent2); margin-bottom: 16px; }
+  .modal .close-btn {
+    float: right; background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 18px; line-height: 1;
+  }
+  .modal .close-btn:hover { color: var(--danger); }
+
+  /* ─── STATUS BAR ─── */
+  .statusbar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 5px 18px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--muted);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .statusbar .saved { color: var(--ok); }
+  .statusbar .unsaved { color: var(--warn); font-weight: 700; animation: pulse-unsaved 2s ease-in-out infinite; }
+  @keyframes pulse-unsaved { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .statusbar .stat { display: flex; align-items: center; gap: 5px; }
+
+  /* ─── IMPORT/EXPORT ─── */
+  .import-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 14px;
+    background: #f7fafd;
+  }
+  .import-zone:hover, .import-zone.drag { border-color: var(--accent); color: var(--accent); background: #eef5fb; }
+  .import-zone input { display: none; }
+
+  /* ─── CTRL column ─── */
+  td.ctrl-col { background: #dce8f5 !important; color: var(--accent2) !important; font-weight: 700; }
+  td.ctrl-ok  { background: #d4f0e0 !important; color: var(--ok) !important; font-weight: 700; }
+  td.ctrl-bad { background: #fde8e6 !important; color: var(--danger) !important; font-weight: 700; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Print styles */
+  @media print {
+    .topbar, .tabs, .statusbar { display: none !important; }
+    #tab-table { display: flex !important; }
+    .table-wrapper { overflow: visible; }
+    table.repartition { font-size: 9px; }
+    body { background: white; color: black; }
+  }
+
+  .badge {
+    display: inline-block; padding: 1px 7px; border-radius: 10px;
+    font-size: 10px; font-weight: 700;
+  }
+  .badge.ok { background: rgba(16,185,129,0.15); color: var(--ok); }
+  .badge.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
+  .badge.danger { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+  /* ─── VERTICAL TEACHER NAMES (ROW 3 : bleu clair) ─── */
+  th.teacher-header {
+    background: #d0e8f8 !important;
+    cursor: pointer;
+    vertical-align: bottom !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    width: 32px !important;
+    padding: 4px 2px 6px 2px !important;
+    white-space: nowrap;
+    border: 1px solid #5a6470 !important;
+  }
+  th.teacher-header:hover { background: #b4d8f5 !important; }
+
+  .teacher-name-vertical {
+    display: block;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 10px;
+    font-weight: 700;
+    color: #0f3d6a;
+    font-family: 'Calibri', 'Carlito', sans-serif;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    max-height: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* ROW 4 : quotas — bleu très clair */
+  th.quota {
+    font-size: 10px;
+    color: #1a4a70;
+    background: #e8f4fd;
+    min-width: 32px; max-width: 32px; width: 32px;
+    padding: 2px !important;
+    border: 1px solid #5a6470 !important;
+    border-bottom: 2px solid #5a6470 !important;
+    font-weight: 700;
+  }
+  .quota-input {
+    background: transparent; border: none; outline: none;
+    color: #1a4a70; font-family: 'Calibri', 'Carlito', sans-serif;
+    font-size: 10px; font-weight: 700; text-align: center;
+    width: 28px; cursor: text;
+  }
+
+  /* ─── CTRL column ─── gris clair aligné avec ROW 1 */
+  th.col-ctrl, td.col-ctrl-h {
+    background: #dde3ea;
+    color: #2c3e50;
+    font-size: 10px;
+    min-width: 38px; max-width: 38px;
+  }
+
+  /* ─── Cellule DIVISIONS fusionnée ─── */
+  table.repartition td.col-class-merged {
+    text-align: center;
+    vertical-align: middle;
+    border-right: 2px solid #5a6470 !important;
+  }
+  table.repartition td.col-class-merged button:hover { opacity: 1 !important; transform: scale(1.2); }
+
+  /* ─── Bordures renforcées entourant chaque division (groupe de lignes d'une classe) ─── */
+  table.repartition tr.division-start td { border-top: 2.5px solid #3a4450; }
+  table.repartition tr.division-end td { border-bottom: 2.5px solid #3a4450; }
+
+  /* ─── Bordure générale renforcée autour du tableau ─── */
+  .table-wrapper { border: 2px solid #5a6470; border-right: none; border-bottom: none; }
+
+  /* Bordure droite prononcée du tableau général (dernière colonne) */
+  table.repartition th:last-child,
+  table.repartition td:last-child { border-right: 2px solid #5a6470; }
+
+  /* Bordure inférieure prononcée du tableau général (dernière ligne = HSA) */
+  table.repartition tbody tr:last-child td { border-bottom: 2px solid #5a6470; }
+
+  /* Disc group header — defined above */
+
+  .notice {
+    padding: 10px 16px; border-radius: 6px; font-size: 12px;
+    background: #e8f1fb; border: 1px solid #b8d4f0;
+    color: var(--accent2); margin-bottom: 14px;
+  }
+
+  .actions-bar {
+    display: flex; gap: 8px; align-items: center; padding: 8px 18px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    flex-shrink: 0; flex-wrap: wrap;
+  }
+  .search-box {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text); padding: 5px 10px;
+    font-size: 12px; font-family: 'Calibri', 'Carlito', sans-serif; width: 200px;
+  }
+  .search-box:focus { outline: none; border-color: var(--accent); }
+
+  select.filter-sel {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text); padding: 5px 8px;
+    font-size: 12px; font-family: 'Calibri', 'Carlito', sans-serif;
+  }
+
+  .class-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; margin-bottom: 3px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface);
+    transition: all 0.15s;
+  }
+  .class-item:hover { border-color: var(--accent); background: #eef5fb; }
+  .class-item.selected { border-color: var(--accent); background: #ddeef8; }
+  .class-item-name {
+    flex: 1; font-family: 'Calibri', 'Carlito', sans-serif; font-size: 12px;
+    font-weight: 600; color: var(--accent2); cursor: pointer;
+  }
+  .class-item.selected .class-item-name { color: var(--accent2); }
+  .class-item-actions { display: flex; gap: 4px; }
+
+  #toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: #ffffff; border: 1px solid var(--ok);
+    color: var(--ok); padding: 10px 24px; border-radius: 8px;
+    font-size: 13px; z-index: 9999; opacity: 0;
+    transition: opacity 0.3s; pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  }
+  #toast.show { opacity: 1; }
+
+  /* ═══════════════════════════════════════
+     ÉCRAN DE CONNEXION
+  ═══════════════════════════════════════ */
+  #loginScreen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #e8f0fa 0%, #d0e4f4 50%, #c8ddf0 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Calibri', 'Carlito', sans-serif;
+  }
+  #loginBox {
+    background: #fff;
+    border: 1px solid #c0cad4;
+    border-radius: 16px;
+    padding: 40px 48px;
+    width: 360px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    text-align: center;
+  }
+  #loginLogo { font-size: 40px; margin-bottom: 12px; }
+  #loginTitle { font-size: 20px; font-weight: 700; color: #0f3d6a; margin: 0 0 4px; letter-spacing: 0.5px; }
+  #loginSubtitle { font-size: 12px; color: #6b7f93; margin: 0 0 24px; }
+  #loginError {
+    background: #fde8e6; color: #c0392b;
+    border: 1px solid #f0c0b8; border-radius: 6px;
+    font-size: 12px; padding: 8px 12px; margin-bottom: 14px; display: none;
+  }
+  .login-field { text-align: left; margin-bottom: 14px; }
+  .login-field label { display: block; font-size: 12px; font-weight: 600; color: #2c3e50; margin-bottom: 6px; }
+  .login-field input {
+    width: 100%; padding: 10px 14px;
+    border: 1px solid #c0cad4; border-radius: 8px;
+    font-size: 14px; font-family: 'Calibri','Carlito',sans-serif;
+    color: #1e2d3d; outline: none; box-sizing: border-box; transition: border-color 0.15s;
+  }
+  .login-field input:focus { border-color: #1d6fa4; }
+  .login-remember { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6b7f93; cursor: pointer; margin-bottom: 20px; text-align: left; }
+  #loginBtn {
+    width: 100%; padding: 11px; background: #1d6fa4; color: #fff;
+    border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+    font-family: 'Calibri','Carlito',sans-serif; cursor: pointer; transition: background 0.15s;
+  }
+  #loginBtn:hover { background: #155a8a; }
+  #loginVersion { font-size: 10px; color: #a0b0c0; margin: 16px 0 0; }
+</style>
+</head>
+<body>
+
+<!-- ═══ ÉCRAN DE CONNEXION ═══ -->
+<div id="loginScreen" style="display:none">
+  <div id="loginBox">
+    <div id="loginLogo">🔐</div>
+    <h2 id="loginTitle">RÉPARTITION SEP</h2>
+    <p id="loginSubtitle">Gestion des services enseignants</p>
+    <div id="loginError"></div>
+    <div class="login-field">
+      <label for="loginPwd">Mot de passe</label>
+      <input type="password" id="loginPwd" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <label class="login-remember">
+      <input type="checkbox" id="loginRemember"> Rester connecté sur cet appareil
+    </label>
+    <button id="loginBtn" onclick="doLogin()">Accéder à l'application</button>
+    <p id="loginVersion">v1.0 · 24 juin 2026</p>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div>
+      <div class="topbar h1" id="titleDisplay">RÉPARTITION SEP</div>
+      <div class="subtitle">Gestion des services enseignants &nbsp;·&nbsp; <span id="appVersion">v1.0 — 24 juin 2026</span></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="lockBtn" onclick="toggleLock()" title="Verrouille la saisie et les onglets Enseignants/Classes. Mot de passe requis pour déverrouiller.">🔓 Verrouiller</button>
+    <button class="btn" onclick="changeLoginPassword()" id="loginPwdBtn" title="Modifier le mot de passe de connexion à l'application">🔑 MDP accès</button>
+    <button class="btn" onclick="logout()" title="Se déconnecter" style="color:var(--danger)">⏻ Déconnexion</button>
+    <button class="btn warn" onclick="exportPDF()">🖨️ Export PDF A3</button>
+    <button class="btn" onclick="loadJSONFile()" title="Recharger une sauvegarde .json précédente">📁 Charger sauvegarde</button>
+    <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJSONImport(event)">
+    <button class="btn primary" onclick="saveData(true)" title="Télécharge un fichier .json contenant toutes les données">💾 Sauvegarder</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('table')">📊 Tableau de répartition</div>
+    <div class="tab" onclick="showTab('teachers')">👨‍🏫 Enseignants</div>
+    <div class="tab" onclick="showTab('classes')">🏫 Classes & Disciplines</div>
+    <div class="tab" onclick="showTab('synthese')">📈 Synthèse</div>
+  </div>
+
+  <!-- ACTIONS BAR -->
+  <div class="actions-bar">
+    <input type="text" class="search-box" id="tableSearchBox" placeholder="🔍 Rechercher classe ou discipline..." oninput="filterTable(this.value)">
+    <select class="filter-sel" onchange="filterByClass(this.value)" id="classFilter">
+      <option value="">Toutes les classes</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="btn" style="color:var(--danger);border-color:var(--danger)" onclick="resetTeacherAssignments()" title="Efface uniquement les heures attribuées aux enseignants (colonnes enseignants) — conserve STMS, BIOTECH, H/E, etc.">🧹 Vider les heures enseignants</button>
+    <span style="font-size:11px;color:var(--muted)">💡 Cliquer sur une cellule pour éditer</span>
+  </div>
+
+  <!-- TAB: TABLE -->
+  <div id="tab-table" class="tab-content active">
+    <div class="table-wrapper" id="tableWrapper">
+      <table class="repartition" id="mainTable"></table>
+    </div>
+  </div>
+
+  <!-- TAB: TEACHERS -->
+  <div id="tab-teachers" class="tab-content">
+    <div class="settings-panel">
+
+      <!-- Panneau gauche : enseignants -->
+      <div class="card">
+        <h3>👨‍🏫 Enseignants</h3>
+        <div class="notice">Nom, quota et groupe de chaque enseignant. Cliquer sur le nom dans le tableau pour éditer rapidement.</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+          <button class="btn primary" onclick="addTeacher()">+ Ajouter un enseignant</button>
+          <button class="btn" onclick="sortTeachersAlpha();saveData();renderTeachersTab();renderTable();" title="Trier tous les enseignants par ordre alphabétique dans chaque groupe">🔤 Trier A→Z</button>
+          <button class="btn" onclick="renderTeachersTab()">↺ Actualiser</button>
+        </div>
+        <div class="teacher-list" id="teacherList"></div>
+      </div>
+
+      <!-- Panneau droit : groupes de disciplines (bandeaux orange dans l'en-tête) -->
+      <div class="card">
+        <h3>🗂️ Groupes de disciplines</h3>
+        <div class="notice">Ces groupes correspondent aux bandeaux orange dans l'en-tête du tableau. Chaque enseignant appartient à l'un d'eux.</div>
+
+        <!-- Ajouter un groupe -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+          <input type="text" class="search-box" style="flex:1;width:auto;text-transform:uppercase"
+            id="newGroupName" placeholder="Nouveau groupe (ex: MATH)" onkeydown="if(event.key==='Enter')addGroup()">
+          <button class="btn primary" onclick="addGroup()">+ Ajouter</button>
+        </div>
+
+        <div id="groupList" style="max-height:420px;overflow-y:auto"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB: CLASSES -->
+  <div id="tab-classes" class="tab-content">
+    <div class="settings-panel">
+      <div class="card">
+        <h3>🏫 Classes</h3>
+        <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+          <input type="text" class="search-box" style="width:auto;flex:1" id="newClassName" placeholder="Nouvelle classe (ex: 3ASSP)" onkeydown="if(event.key==='Enter')addClass()">
+          <button class="btn primary" onclick="addClass()">+ Ajouter</button>
+        </div>
+        <div id="classList" style="max-height:460px;overflow-y:auto"></div>
+      </div>
+      <div class="card">
+        <h3>📚 Disciplines <span id="discPanelTitle" style="color:var(--muted);font-weight:400;font-size:12px"></span></h3>
+        <div id="discPanel" style="color:var(--muted);font-size:12px;padding:10px 0">
+          Sélectionner une classe à gauche pour gérer ses disciplines.
+        </div>
+      </div>
+      <div class="card" style="grid-column:1/-1">
+        <h3>⚙️ Paramètres généraux</h3>
+        <div class="field-row">
+          <label>Titre du tableau</label>
+          <input type="text" id="titleInput" placeholder="REPARTITION SEP" oninput="updateTitle(this.value)">
+        </div>
+        <div class="field-row">
+          <label>Année scolaire</label>
+          <input type="text" id="yearInput" placeholder="2024-2025" oninput="state.year=this.value;saveData()">
+        </div>
+        <div class="field-row">
+          <label>Établissement</label>
+          <input type="text" id="schoolInput" placeholder="Nom de l'établissement" oninput="state.school=this.value;saveData()">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB: SYNTHESE -->
+  <div id="tab-synthese" class="tab-content">
+    <div class="settings-panel" style="max-width:100%;grid-template-columns:1fr 1fr">
+
+      <!-- Synthèse des services enseignants -->
+      <div class="card" style="grid-column:1/-1">
+        <h3>📈 Synthèse des services enseignants</h3>
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+          <button class="btn" onclick="setSyntheseSort('group')" id="sortByGroupBtn" style="font-size:11px;padding:4px 12px">🗂️ Par groupe</button>
+          <button class="btn" onclick="setSyntheseSort('alpha')" id="sortByAlphaBtn" style="font-size:11px;padding:4px 12px">🔤 A → Z</button>
+        </div>
+        <div id="syntheseContent"></div>
+      </div>
+
+      <!-- Synthèse par classe -->
+      <div class="card" style="grid-column:1/-1">
+        <h3>📋 Synthèse par classe</h3>
+        <div class="notice">Sélectionnez une ou plusieurs classes pour afficher la liste des enseignants intervenant sur chacune, leur discipline et le nombre d'heures.</div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap">
+          <div style="min-width:220px;flex-shrink:0">
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <button class="btn" style="padding:4px 10px;font-size:11px" onclick="toggleAllClassCheckboxes(true)">Tout cocher</button>
+              <button class="btn" style="padding:4px 10px;font-size:11px" onclick="toggleAllClassCheckboxes(false)">Tout décocher</button>
+            </div>
+            <div id="classSyntheseCheckboxes" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px"></div>
+            <button class="btn primary" style="margin-top:10px;width:100%" onclick="generateClassSynthese()">📋 Générer la synthèse</button>
+          </div>
+          <div style="flex:1;min-width:320px">
+            <div id="classSyntheseResult" style="color:var(--muted);font-size:12px;padding:10px 0">
+              Cochez une ou plusieurs classes puis cliquez sur « Générer la synthèse ».
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <span id="saveStatus" class="saved">✓ Données chargées</span>
+    <span class="stat">👤 <span id="statTeachers">0</span> enseignants</span>
+    <span class="stat">🏫 <span id="statClasses">0</span> classes</span>
+    <span class="stat">📚 <span id="statRows">0</span> lignes</span>
+    <span class="stat">📊 Total: <span id="statTotal">0</span>h</span>
+    <div class="spacer"></div>
+    <span style="font-size:10px">💾 Sauvegarder = télécharge un fichier .json — 📁 Charger sauvegarde = recharge ce fichier</span>
+    <span style="font-size:10px;color:var(--muted);margin-left:auto">v1.0 · 24 juin 2026</span>
+    <span id="githubStatus" style="font-size:10px;color:var(--muted)"></span>
+  </div>
+
+</div>
+
+<!-- MODAL: Edit Cell -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModalBtn()">×</button>
+    <h3 id="modalTitle">Modifier la valeur</h3>
+    <div id="modalBody"></div>
+    <div id="modalFooter" style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button class="btn" onclick="closeModalBtn()">Annuler</button>
+      <button class="btn primary" onclick="saveModalValue()">Valider</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">Sauvegarde effectuée ✓</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════════════
+
+const STORAGE_KEY = 'sep_repartition_v2';
+
+// Données par défaut (issues du fichier original fourni)
+const DEFAULT_DATA = {
+  title: 'DDFPT-WA | Répartition des services',
+  year: '2025-2026',
+  school: 'LPO MARIE CURIE',
+  teachers: [
+    {id:'t10', name:'SAVRIMOUTOU ML.', quota:18, group:'STMS P7300'},
+    {id:'t11', name:'BARDY ML.', quota:18, group:'STMS P7300'},
+    {id:'t12', name:'VITRY A.(INF)', quota:18, group:'STMS P7300'},
+    {id:'t13', name:'SALOMON C.', quota:18, group:'STMS P7300'},
+    {id:'t14', name:'AYASSAMI P. (DEAP)', quota:18, group:'STMS P7300'},
+    {id:'t15', name:'PICOT MP.', quota:12, group:'STMS P7300'},
+    {id:'t16', name:'ESPARON E. (INF)', quota:18, group:'STMS P7300'},
+    {id:'t17', name:'PAYET K.', quota:12, group:'STMS P7300'},
+    {id:'t18', name:'DUFOUR M.', quota:18, group:'STMS P7300'},
+    {id:'t19', name:'DIJOUX S.', quota:18, group:'STMS P7300'},
+    {id:'t20', name:'ORLIANGE B.', quota:18, group:'BSE 7200'},
+    {id:'t21', name:'TACOUN M.', quota:18, group:'BSE 7200'},
+    {id:'t22', name:'LECOQ C. (DET)', quota:18, group:'BSE 7200'},
+    {id:'t23', name:'LEHERICEY G.', quota:18, group:'BSE 7200'},
+    {id:'t26', name:'STAGIAIRE', quota:6, group:'LET. HIST.'},
+    {id:'t27', name:'CANIGUY L.', quota:12, group:'LET. HIST.'},
+    {id:'t28', name:'BMP', quota:9, group:'LET. HIST.'},
+    {id:'t29', name:'XITRA R.', quota:18, group:'LET. ANG.'},
+    {id:'t30', name:'SELLIER N.', quota:18, group:'LET. ANG.'},
+    {id:'t31', name:'BIENASSIS K.', quota:18, group:'LET. ANG.'},
+    {id:'t32', name:'BMP', quota:5, group:'ESP'},
+    {id:'t33', name:'CSR', quota:7.5, group:'ALL'},
+    {id:'t34', name:'MUSSARD C.', quota:0, group:'ECO'},
+    {id:'t35', name:'HAUDEGOND E.', quota:9, group:'MATHS/PH.'},
+    {id:'t36', name:'DEURVILHER E.', quota:18, group:'MATHS/PH.'},
+    {id:'t37', name:'PAYET J. LUC', quota:18, group:'MATHS/PH.'},
+    {id:'t38', name:'VOISIN B.', quota:9, group:'ARTS APP.'},
+    {id:'t39', name:'BRETAGNE G.', quota:10.9, group:'ARTS APP.'},
+    {id:'t40', name:'BMP', quota:6, group:'EPS'},
+    {id:'t41', name:'M. LEBEAU / M. BALBINE / C. DURIEZ', quota:25, group:'EPS'},
+  ],
+  rows: [
+    // 2AEPE
+    {cls:'2AEPE', disc:'Bloc 1 - Accompagner le dev. du jeune enfant', stms:0.75, biotech:3, he:3.75, clent:0.75, g:3, nbg:2, hp:6.75, vals:{t10:0.75, t23:6}},
+    {cls:'2AEPE', disc:'Bloc 2 - Exercer son activité en accueil collectif', stms:3.75, biotech:0, he:3.75, clent:0.75, g:3, nbg:2, hp:6.75, vals:{t10:6.75}},
+    {cls:'2AEPE', disc:'Bloc 3 - Exercer son activité en accueil individuel', stms:3.5, biotech:0.5, he:4, clent:0.5, g:3.5, nbg:2, hp:7.5, vals:{}},
+    {cls:'2AEPE', disc:'SST', stms:0, biotech:0.5, he:0.5, clent:0, g:0.5, nbg:2, hp:1, vals:{}},
+    {cls:'2AEPE', disc:'PSE', stms:0, biotech:1.5, he:1.5, clent:0, g:1.5, nbg:2, hp:3, vals:{}},
+    {cls:'2AEPE', disc:"Chef d'œuvre", stms:0, biotech:0, he:3, clent:0, g:3, nbg:2, hp:6, vals:{t10:1.5, t23:1.5}},
+    {cls:'2AEPE', disc:'Co Intervention EP+EG', stms:0, biotech:0, he:3, clent:1.5, g:0, nbg:2, hp:6, vals:{t10:1.5, t23:1.5}},
+    {cls:'2AEPE', disc:'Français - HG - EMC', stms:0, biotech:0, he:2, clent:0.5, g:1.5, nbg:2, hp:3.5, vals:{}},
+    {cls:'2AEPE', disc:'Anglais', stms:0, biotech:0, he:1.5, clent:0.5, g:1, nbg:2, hp:2.5, vals:{}},
+    {cls:'2AEPE', disc:'Maths - Phy-chimie', stms:0, biotech:0, he:1.5, clent:0.5, g:1, nbg:2, hp:2.5, vals:{}},
+    {cls:'2AEPE', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:0.5, g:0.5, nbg:2, hp:1.5, vals:{}},
+    {cls:'2AEPE', disc:'EPS', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'2AEPE', disc:'AP - 43,5+(58)', stms:0, biotech:0, he:3.5, clent:1.5, g:2, nbg:2, hp:5.5, vals:{t10:2, t23:2}},
+    // TAEPE
+    {cls:'TAEPE', disc:'Bloc 1 - Accompagner le dev. du jeune enfant', stms:4.75, biotech:0, he:4.75, clent:0.75, g:4, nbg:2, hp:8.75, vals:{t10:0.75, t16:8}},
+    {cls:'TAEPE', disc:'Bloc 2 - Exercer son activité en accueil collectif', stms:3.75, biotech:0, he:3.75, clent:0.75, g:3, nbg:2, hp:6.75, vals:{t10:3, t16:3.75}},
+    {cls:'TAEPE', disc:'Bloc 3 - Exercer son activité en accueil individuel', stms:0, biotech:3.5, he:3.5, clent:0.5, g:3, nbg:2, hp:6.5, vals:{t22:6.5}},
+    {cls:'TAEPE', disc:'PSE', stms:0, biotech:1, he:1, clent:0, g:1, nbg:2, hp:2, vals:{}},
+    {cls:'TAEPE', disc:"Chef d'œuvre", stms:0, biotech:0, he:3, clent:1, g:2, nbg:2, hp:5, vals:{t16:2}},
+    {cls:'TAEPE', disc:'Co Intervention EP+EG', stms:0, biotech:0, he:3, clent:1.5, g:0, nbg:2, hp:6, vals:{t16:1.5, t22:1.5}},
+    {cls:'TAEPE', disc:'Français - HG - EMC', stms:0, biotech:0, he:2, clent:0.5, g:1.5, nbg:2, hp:3.5, vals:{}},
+    {cls:'TAEPE', disc:'Anglais', stms:0, biotech:0, he:1.5, clent:0.5, g:1, nbg:2, hp:2.5, vals:{}},
+    {cls:'TAEPE', disc:'Maths - Phy-chimie', stms:0, biotech:0, he:1.5, clent:0.5, g:1, nbg:2, hp:2.5, vals:{}},
+    {cls:'TAEPE', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:0.5, g:0.5, nbg:2, hp:1.5, vals:{}},
+    {cls:'TAEPE', disc:'EPS', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'TAEPE', disc:'AP - 39+(52)', stms:0, biotech:0, he:3.5, clent:1.5, g:2, nbg:2, hp:5.5, vals:{t16:2, t22:2}},
+    // 2AAGA
+    {cls:'2AAGA', disc:"Pôle 1 – Services et entretien dans l'environnement collectif", stms:0, biotech:7.5, he:7.5, clent:7.5, g:0, nbg:0, hp:7.5, vals:{t23:7.5}},
+    {cls:'2AAGA', disc:"Pôle 2 – Promotion de l'autonomie de la personne dans son espace privé", stms:0, biotech:4, he:4, clent:4, g:0, nbg:0, hp:4, vals:{t10:4}},
+    {cls:'2AAGA', disc:'SST', stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{}},
+    {cls:'2AAGA', disc:'PSE', stms:0, biotech:0, he:1.5, clent:0, g:1.5, nbg:1, hp:1.5, vals:{}},
+    {cls:'2AAGA', disc:"Chef d'œuvre", stms:0, biotech:0, he:3, clent:0, g:3, nbg:1, hp:3, vals:{}},
+    {cls:'2AAGA', disc:'Co Intervention EP+EG', stms:0, biotech:0, he:3, clent:1.5, g:0, nbg:2, hp:6, vals:{}},
+    {cls:'2AAGA', disc:'Français - HG - EMC', stms:0, biotech:0, he:2, clent:2, g:0, nbg:0, hp:2, vals:{}},
+    {cls:'2AAGA', disc:'Anglais', stms:0, biotech:0, he:1.5, clent:1.5, g:0, nbg:0, hp:1.5, vals:{}},
+    {cls:'2AAGA', disc:'Maths - Phy-chimie', stms:0, biotech:0, he:1.5, clent:1.5, g:0, nbg:0, hp:1.5, vals:{}},
+    {cls:'2AAGA', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{}},
+    {cls:'2AAGA', disc:'EPS', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'2AAGA', disc:'AP - 43,5+(58)', stms:0, biotech:0, he:3.5, clent:3.5, g:0, nbg:0, hp:3.5, vals:{}},
+    // TAAGA
+    {cls:'TAAGA', disc:"Pôle 1 – Services et entretien dans l'environnement collectif", stms:0, biotech:7.5, he:7.5, clent:7.5, g:0, nbg:0, hp:7.5, vals:{t21:7.5}},
+    {cls:'TAAGA', disc:"Pôle 2 – Promotion de l'autonomie de la personne dans son espace privé", stms:0, biotech:4, he:4, clent:4, g:0, nbg:0, hp:4, vals:{t10:6}},
+    {cls:'TAAGA', disc:'SST', stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{}},
+    {cls:'TAAGA', disc:'PSE', stms:0, biotech:0, he:1, clent:0, g:1, nbg:1, hp:1, vals:{}},
+    {cls:'TAAGA', disc:"Chef d'œuvre", stms:0, biotech:0, he:3, clent:0, g:3, nbg:1, hp:3, vals:{}},
+    {cls:'TAAGA', disc:'Co Intervention EP+EG', stms:0, biotech:0, he:3, clent:1.5, g:0, nbg:2, hp:6, vals:{}},
+    {cls:'TAAGA', disc:'Français - HG - EMC', stms:0, biotech:0, he:2, clent:2, g:0, nbg:0, hp:2, vals:{}},
+    {cls:'TAAGA', disc:'Anglais', stms:0, biotech:0, he:1.5, clent:1.5, g:0, nbg:0, hp:1.5, vals:{}},
+    {cls:'TAAGA', disc:'Maths - Phy-chimie', stms:0, biotech:0, he:1.5, clent:1.5, g:0, nbg:0, hp:1.5, vals:{}},
+    {cls:'TAAGA', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{}},
+    {cls:'TAAGA', disc:'EPS', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'TAAGA', disc:'AP - 43,5+(58)', stms:0, biotech:0, he:3.5, clent:3.5, g:0, nbg:0, hp:3.5, vals:{}},
+    // 2ASSP
+    {cls:'2ASSP', disc:'BLOC 1', stms:6.5, biotech:0, he:3.5, clent:1, g:2.5, nbg:2, hp:6, vals:{}},
+    {cls:'2ASSP', disc:'BLOC 2 - Soins (IDE REQUIS SPEA)', stms:3.5, biotech:3.5, he:4, clent:1, g:3, nbg:2, hp:7, vals:{t12:7}},
+    {cls:'2ASSP', disc:'BLOC 3', stms:3, biotech:1.5, he:3, clent:1.5, g:1.5, nbg:2, hp:4.5, vals:{t19:7}},
+    {cls:'2ASSP', disc:'BLOC 4', stms:1, biotech:2, he:1.5, clent:0, g:1.5, nbg:2, hp:3, vals:{t12:3}},
+    {cls:'2ASSP', disc:'PSE', stms:0, biotech:1, he:1, clent:0.5, g:0.5, nbg:2, hp:1.5, vals:{t19:1}},
+    {cls:'2ASSP', disc:'DNL', stms:0, biotech:0, he:1, clent:1, g:0, nbg:2, hp:1, vals:{t19:1}},
+    {cls:'2ASSP', disc:'Co Intervention EG + EP', stms:0, biotech:0, he:2, clent:2, g:0, nbg:2, hp:2, vals:{}},
+    {cls:'2ASSP', disc:'Français - HG - EMC + Eff. réduit', stms:0, biotech:0, he:4, clent:2, g:2, nbg:2, hp:7, vals:{}},
+    {cls:'2ASSP', disc:'Anglais', stms:0, biotech:0, he:2, clent:1, g:1, nbg:2, hp:3, vals:{}},
+    {cls:'2ASSP', disc:'Maths - Phy-chimie + eff. réduit', stms:0, biotech:0, he:3.5, clent:0.5, g:3, nbg:2, hp:7, vals:{}},
+    {cls:'2ASSP', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:0, g:1, nbg:2, hp:2, vals:{}},
+    {cls:'2ASSP', disc:'EPS', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'2ASSP', disc:'Soutien au parcours', stms:0, biotech:0, he:1, clent:1, g:0, nbg:2, hp:1, vals:{t12:0.5}},
+    // 1ASSP
+    {cls:'1ASSP', disc:'BLOC 1', stms:2, biotech:0, he:2, clent:0, g:2, nbg:2, hp:4, vals:{t17:4}},
+    {cls:'1ASSP', disc:'BLOC 2 - Soins (IDE REQUIS SPEA)', stms:2, biotech:1, he:3, clent:0, g:3, nbg:2, hp:6, vals:{}},
+    {cls:'1ASSP', disc:'BLOC 3', stms:2, biotech:1.5, he:3.5, clent:1, g:2.5, nbg:2, hp:6, vals:{}},
+    {cls:'1ASSP', disc:'BLOC 4', stms:1, biotech:1, he:2, clent:2, g:0, nbg:2, hp:2, vals:{t17:2, t19:5}},
+    {cls:'1ASSP', disc:'SST', stms:0, biotech:0, he:0, clent:0, g:0, nbg:2, hp:0, vals:{}},
+    {cls:'1ASSP', disc:'PSE', stms:0, biotech:1, he:0.5, clent:0.5, g:0.5, nbg:2, hp:1.5, vals:{t19:1}},
+    {cls:'1ASSP', disc:'Projet', stms:0, biotech:0, he:1.5, clent:0, g:1.5, nbg:2, hp:3, vals:{t17:1}},
+    {cls:'1ASSP', disc:'DNL', stms:0, biotech:0, he:1, clent:1, g:0, nbg:2, hp:1, vals:{t19:1}},
+    {cls:'1ASSP', disc:'Co Intervention EG + EP', stms:0, biotech:0, he:2, clent:2, g:0, nbg:0, hp:2, vals:{}},
+    {cls:'1ASSP', disc:'Français - HG - EMC + Eff. réduit', stms:0, biotech:0, he:3.5, clent:1.5, g:2, nbg:2, hp:6, vals:{}},
+    {cls:'1ASSP', disc:'Anglais', stms:0, biotech:0, he:2, clent:1, g:1, nbg:2, hp:3, vals:{}},
+    {cls:'1ASSP', disc:'Maths - Phy-chimie + eff. réduit', stms:0, biotech:0, he:3.5, clent:1, g:2.5, nbg:2, hp:6.5, vals:{}},
+    {cls:'1ASSP', disc:'Eco gestion', stms:0, biotech:0, he:2, clent:1, g:1, nbg:2, hp:3, vals:{}},
+    {cls:'1ASSP', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:0, g:1, nbg:2, hp:2, vals:{}},
+    {cls:'1ASSP', disc:'EPS', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'1ASSP', disc:'Soutien au parcours', stms:0, biotech:0, he:1, clent:0.5, g:0.5, nbg:2, hp:1.5, vals:{}},
+    // TASSP
+    {cls:'TASSP', disc:'Bloc 1/ Bloc 2 (stms)', stms:3.5, biotech:0, he:3.5, clent:1, g:2.5, nbg:2, hp:6, vals:{t15:5, t17:1}},
+    {cls:'TASSP', disc:'Bloc 3 (biotech)', stms:0, biotech:4.5, he:4.5, clent:1.5, g:3, nbg:2, hp:7.5, vals:{t18:7.5}},
+    {cls:'TASSP', disc:'Bloc 4 (stms)', stms:2.5, biotech:0, he:2.5, clent:0.5, g:2, nbg:2, hp:4.5, vals:{t17:4.5}},
+    {cls:'TASSP', disc:'DNL', stms:0, biotech:0, he:1, clent:1, g:0, nbg:2, hp:1, vals:{t18:1}},
+    {cls:'TASSP', disc:'PSE', stms:0, biotech:1.5, he:1.5, clent:1, g:0.5, nbg:2, hp:2, vals:{t21:2}},
+    {cls:'TASSP', disc:'Projet', stms:0, biotech:0, he:1, clent:0, g:1, nbg:2, hp:2, vals:{t17:1}},
+    {cls:'TASSP', disc:'Français - HG - EMC', stms:0, biotech:0, he:4.5, clent:2.5, g:2, nbg:2, hp:6.5, vals:{}},
+    {cls:'TASSP', disc:'Anglais', stms:0, biotech:0, he:2.5, clent:1.5, g:1, nbg:2, hp:3.5, vals:{}},
+    {cls:'TASSP', disc:'Maths - Phy-chimie', stms:0, biotech:0, he:4, clent:1.5, g:2.5, nbg:2, hp:6.5, vals:{}},
+    {cls:'TASSP', disc:'Eco gestion', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'TASSP', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:0, g:1, nbg:2, hp:2, vals:{}},
+    {cls:'TASSP', disc:'EPS', stms:0, biotech:0, he:3, clent:3, g:0, nbg:0, hp:3, vals:{}},
+    {cls:'TASSP', disc:'Soutien au parcours', stms:0, biotech:0, he:1, clent:1, g:0.5, nbg:2, hp:2, vals:{t13:2}},
+    // 2ANIM
+    {cls:'2ANIM', disc:"F1-Contribution au fonctionnement de la structure - projet d'animation", stms:0, biotech:0, he:12, clent:12, g:0, nbg:0, hp:12, vals:{t21:6}},
+    {cls:'2ANIM', disc:"F2-Animation visant le maintien de l'autonomie sociale", stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{t13:6}},
+    {cls:'2ANIM', disc:"F3-Animation visant l'épanouissement, la socialisation", stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{}},
+    {cls:'2ANIM', disc:'SST', stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{}},
+    {cls:'2ANIM', disc:'PSE', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{t21:1}},
+    {cls:'2ANIM', disc:'DNL', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{t19:1}},
+    {cls:'2ANIM', disc:'Co Intervention EG + EP (0,5+0,5)', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:2, vals:{t13:0.5}},
+    {cls:'2ANIM', disc:'Français - HG - EMC + Eff. réduit', stms:0, biotech:0, he:4, clent:4, g:0, nbg:0, hp:5, vals:{}},
+    {cls:'2ANIM', disc:'Anglais', stms:0, biotech:0, he:2, clent:2, g:0, nbg:0, hp:2, vals:{}},
+    {cls:'2ANIM', disc:'LVB', stms:0, biotech:0, he:1.5, clent:1.5, g:0, nbg:0, hp:1.5, vals:{}},
+    {cls:'2ANIM', disc:'Maths + eff. réduit', stms:0, biotech:0, he:2, clent:2, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'2ANIM', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{}},
+    {cls:'2ANIM', disc:'EPS', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'2ANIM', disc:'Soutien au parcours', stms:0, biotech:0, he:3, clent:1, g:2, nbg:0, hp:1, vals:{}},
+    // 1ANIM
+    {cls:'1ANIM', disc:"F1-Contribution au fonctionnement - projet d'animation", stms:0, biotech:0, he:10.5, clent:10.5, g:0, nbg:0, hp:10.5, vals:{t21:5}},
+    {cls:'1ANIM', disc:"F2-Animation visant le maintien de l'autonomie sociale", stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{t13:5.5}},
+    {cls:'1ANIM', disc:"F3-Animation visant l'épanouissement, la socialisation", stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{}},
+    {cls:'1ANIM', disc:'SST', stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{}},
+    {cls:'1ANIM', disc:'PSE', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{t21:1}},
+    {cls:'1ANIM', disc:'DNL', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{t19:1}},
+    {cls:'1ANIM', disc:'Co Intervention EG + EP', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:2, vals:{}},
+    {cls:'1ANIM', disc:'Projet', stms:0, biotech:0, he:1.5, clent:1.5, g:0, nbg:0, hp:1.5, vals:{}},
+    {cls:'1ANIM', disc:'Français - HG - EMC + Eff. réduit', stms:0, biotech:0, he:3.5, clent:3.5, g:0, nbg:0, hp:4, vals:{}},
+    {cls:'1ANIM', disc:'Anglais', stms:0, biotech:0, he:2, clent:2, g:0, nbg:0, hp:2, vals:{}},
+    {cls:'1ANIM', disc:'Maths + eff. réduit', stms:0, biotech:0, he:2, clent:2, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'1ANIM', disc:'Eco-Gestion', stms:0, biotech:0, he:2, clent:2, g:0, nbg:0, hp:2, vals:{}},
+    {cls:'1ANIM', disc:'LVB', stms:0, biotech:0, he:1.5, clent:1.5, g:0, nbg:0, hp:1.5, vals:{}},
+    {cls:'1ANIM', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{}},
+    {cls:'1ANIM', disc:'EPS', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'1ANIM', disc:'Soutien au parcours', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{}},
+    // TANIM
+    {cls:'TANIM', disc:"F1-Contribution au fonctionnement - projet d'animation", stms:0, biotech:0, he:10.5, clent:10.5, g:0, nbg:0, hp:10.5, vals:{t18:5}},
+    {cls:'TANIM', disc:"F2-Animation visant le maintien de l'autonomie sociale", stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{t13:5.5}},
+    {cls:'TANIM', disc:"F3-Animation visant l'épanouissement, la socialisation", stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{}},
+    {cls:'TANIM', disc:'PSE', stms:0, biotech:0, he:1.5, clent:1.5, g:0, nbg:0, hp:1.5, vals:{}},
+    {cls:'TANIM', disc:'Projet', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{t13:1}},
+    {cls:'TANIM', disc:'Français - HG', stms:0, biotech:0, he:4.5, clent:4.5, g:0, nbg:0, hp:4.5, vals:{}},
+    {cls:'TANIM', disc:'Anglais', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'TANIM', disc:'LVB', stms:0, biotech:0, he:1.5, clent:1.5, g:0, nbg:0, hp:1.5, vals:{}},
+    {cls:'TANIM', disc:'Maths - Phy-chimie', stms:0, biotech:0, he:2.5, clent:2.5, g:0, nbg:0, hp:2.5, vals:{}},
+    {cls:'TANIM', disc:'Eco gestion', stms:0, biotech:0, he:1.5, clent:1, g:0.5, nbg:1, hp:1.5, vals:{}},
+    {cls:'TANIM', disc:'Arts Appliqués', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{}},
+    {cls:'TANIM', disc:'EPS', stms:0, biotech:0, he:3, clent:3, g:0, nbg:0, hp:3, vals:{}},
+    {cls:'TANIM', disc:'Soutien au parcours', stms:0, biotech:0, he:1, clent:1, g:0, nbg:0, hp:1, vals:{t13:1}},
+    // MCAD
+    {cls:'MCAD', disc:"Pôle 1 – Promotion de l'autonomie des personnes", stms:14, biotech:6, he:20, clent:20, g:0, nbg:1, hp:20, vals:{t10:2, t14:12, t19:6}},
+    {cls:'MCAD', disc:"Pôle 2 – Accompagnement des enfants de plus de 6 ans", stms:2.5, biotech:1.5, he:4, clent:4, g:0, nbg:1, hp:4, vals:{t10:2.5, t26:1.5}},
+    {cls:'MCAD', disc:"Pôle 3 – Prestations de services", stms:1.5, biotech:4.5, he:6, clent:6, g:0, nbg:1, hp:6, vals:{t10:1.5, t26:4.5}},
+    // DEAS
+    {cls:'DEAS', disc:'', stms:23.5, biotech:0, he:23.5, clent:23.5, g:0, nbg:2, hp:23.5, vals:{t15:15, t17:8.5}},
+    // DEAP
+    {cls:'DEAP', disc:'', stms:23.5, biotech:0, he:23.5, clent:23.5, g:0, nbg:2, hp:23.5, vals:{t12:5.5, t14:18}},
+    // PREPA / OPTION
+    {cls:'PREPA METIERS', disc:'', stms:1.5, biotech:1.5, he:0, clent:0, g:0, nbg:0, hp:0, vals:{}},
+    {cls:'OPTION SANTE', disc:'', stms:1, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{t16:1}},
+  ]
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  LOAD / SAVE
+// ════════════════════════════════════════════════════════════════════
+
+let state = null;
+let hasUnsavedChanges = false; // true tant que les modifications n'ont pas été exportées en .json
+let isLocked = false; // true = lecture seule (filtres et menus restent accessibles)
+const LOCK_PASSWORD_KEY = 'sep_lock_password_v1';
+const LOCKED_TABS = ['teachers', 'classes']; // onglets totalement inaccessibles en mode verrouillé
+
+function guardLocked(actionLabel) {
+  if (isLocked) {
+    showToast('🔒 Fichier verrouillé — déverrouillez pour ' + (actionLabel || 'modifier les données'));
+    return true;
+  }
+  return false;
+}
+
+function getLockPassword() {
+  // Priorité : mot de passe stocké dans state (portable via .json), fallback localStorage
+  if (state && state._lockPassword) return state._lockPassword;
+  try { return localStorage.getItem(LOCK_PASSWORD_KEY) || ''; } catch(e) { return ''; }
+}
+
+function setLockPassword(pwd) {
+  // Stocke dans state → sera inclus dans le .json lors de la prochaine sauvegarde
+  if (state) {
+    if (pwd) state._lockPassword = pwd;
+    else delete state._lockPassword;
+  }
+  // Et dans localStorage comme fallback local
+  try {
+    if (pwd) localStorage.setItem(LOCK_PASSWORD_KEY, pwd);
+    else localStorage.removeItem(LOCK_PASSWORD_KEY);
+  } catch(e) {}
+}
+
+function toggleLock() {
+  if (isLocked) {
+    unlockWithPassword();
+  } else {
+    lockNow();
+  }
+}
+
+function lockNow() {
+  const existingPwd = getLockPassword();
+  let pwd = existingPwd;
+
+  if (!existingPwd) {
+    // Premier verrouillage : définir le mot de passe de déverrouillage
+    const p1 = prompt('Définir un mot de passe de déverrouillage :');
+    if (p1 === null) return; // annulé
+    if (!p1.trim()) { showToast('Mot de passe vide — verrouillage annulé.'); return; }
+    const p2 = prompt('Confirmer le mot de passe :');
+    if (p2 === null) return;
+    if (p1 !== p2) { showToast('Les mots de passe ne correspondent pas — verrouillage annulé.'); return; }
+    pwd = p1;
+    setLockPassword(pwd);
+  }
+
+  applyLockState(true);
+  showToast('🔒 Fichier verrouillé — onglets Enseignants et Classes inaccessibles');
+}
+
+function unlockWithPassword() {
+  const pwd = getLockPassword();
+  const attempt = prompt('Mot de passe pour déverrouiller :');
+  if (attempt === null) return; // annulé
+  if (attempt !== pwd) {
+    showToast('❌ Mot de passe incorrect.');
+    return;
+  }
+  applyLockState(false);
+  showToast('🔓 Fichier déverrouillé — saisie réactivée');
+}
+
+function applyLockState(locked) {
+  isLocked = locked;
+  const btn = document.getElementById('lockBtn');
+  const body = document.body;
+
+  if (locked) {
+    btn.textContent = '🔒 Verrouillé';
+    btn.classList.add('locked');
+    body.classList.add('app-locked');
+    // Masquer le bouton MDP accès en mode verrouillé
+    const pwdBtn = document.getElementById('loginPwdBtn');
+    if (pwdBtn) pwdBtn.style.display = 'none';
+
+    // Si l'onglet actif est un onglet verrouillé, basculer vers le tableau
+    const activeContent = document.querySelector('.tab-content.active');
+    if (activeContent && LOCKED_TABS.includes(activeContent.id.replace('tab-', ''))) {
+      showTab('table');
+    }
+  } else {
+    btn.textContent = '🔓 Verrouiller';
+    btn.classList.remove('locked');
+    body.classList.remove('app-locked');
+    // Réafficher le bouton MDP accès
+    const pwdBtn = document.getElementById('loginPwdBtn');
+    if (pwdBtn) pwdBtn.style.display = '';
+  }
+
+  renderTabLockState();
+  renderTable(); // réaffiche le tableau pour appliquer/retirer le style lecture-seule sur les cellules
+}
+
+function renderTabLockState() {
+  const tabEls = document.querySelectorAll('.tab');
+  const tabNames = ['table', 'teachers', 'classes', 'synthese'];
+  tabEls.forEach((el, i) => {
+    if (LOCKED_TABS.includes(tabNames[i])) {
+      el.classList.toggle('tab-locked', isLocked);
+    }
+  });
+}
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      state = JSON.parse(saved);
+      showToast('Données restaurées depuis la dernière session ✓');
+    } else {
+      state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      // Par défaut (aucune sauvegarde locale) : vider toutes les heures enseignants
+      // pour partir d'une feuille blanche — les données horaires (H/E, G, NB/G, H/P…)
+      // sont conservées car elles constituent la grille de référence.
+      state.rows.forEach(r => { r.vals = {}; });
+    }
+  } catch(e) {
+    state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    state.rows.forEach(r => { r.vals = {}; });
+  }
+  hasUnsavedChanges = false;
+}
+
+function markUnsaved() {
+  hasUnsavedChanges = true;
+  updateSaveStatusBadge();
+}
+
+function updateSaveStatusBadge() {
+  const el = document.getElementById('saveStatus');
+  if (!el) return;
+  if (hasUnsavedChanges) {
+    el.textContent = '● Modifications non sauvegardées (.json)';
+    el.classList.remove('saved');
+    el.classList.add('unsaved');
+  } else {
+    el.textContent = '✓ Sauvegardé – ' + new Date().toLocaleTimeString();
+    el.classList.remove('unsaved');
+    el.classList.add('saved');
+  }
+}
+
+function saveData(downloadFile) {
+  // 1) Sauvegarde locale "best effort" (peut être effacée selon le navigateur/l'environnement)
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch(e) { /* localStorage indisponible — on continue, le fichier .json reste la sauvegarde fiable */ }
+
+  updateStats();
+
+  // 2) Sauvegarde fiable : téléchargement d'un fichier .json (sur action explicite uniquement)
+  if (downloadFile) {
+    const dataStr = JSON.stringify(state, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = (state.title || 'repartition_sep').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    a.href = url;
+    a.download = `${safeName}_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    hasUnsavedChanges = false;
+    updateSaveStatusBadge();
+    showToast('Fichier de sauvegarde .json téléchargé ✓');
+  } else if (downloadFile === false) {
+    // Appelé juste après le chargement d'un fichier .json — état déjà propre, pas de "non sauvegardé"
+    updateSaveStatusBadge();
+  } else {
+    // Appel "silencieux" déclenché par une modification (auto-save local uniquement)
+    hasUnsavedChanges = true;
+    updateSaveStatusBadge();
+  }
+}
+
+function loadJSONFile() {
+  if (guardLocked('charger une sauvegarde')) return;
+  document.getElementById('jsonFileInput').click();
+}
+
+function handleJSONImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const loaded = JSON.parse(e.target.result);
+      if (!loaded.teachers || !loaded.rows) {
+        showToast('Fichier invalide : structure non reconnue.');
+        return;
+      }
+      if (hasUnsavedChanges && !confirm(`Charger cette sauvegarde ?\n${loaded.teachers.length} enseignant(s), ${loaded.rows.length} ligne(s).\n⚠️ Des modifications non sauvegardées seront perdues.`)) return;
+      if (!hasUnsavedChanges && !confirm(`Charger cette sauvegarde ?\n${loaded.teachers.length} enseignant(s), ${loaded.rows.length} ligne(s).`)) return;
+
+      state = loaded;
+      hasUnsavedChanges = false;
+
+      // Restaure le mot de passe de verrouillage dans localStorage si présent dans le JSON
+      if (state._lockPassword) {
+        try { localStorage.setItem(LOCK_PASSWORD_KEY, state._lockPassword); } catch(e) {}
+      }
+
+      // Réinitialise tous les filtres actifs (recherche, classe sélectionnée),
+      // sinon un filtre obsolète peut masquer entièrement les nouvelles données
+      // et donner l'impression que "rien ne change" après le chargement.
+      currentFilter = '';
+      currentClassFilter = '';
+      selectedClass = null;
+      const searchBox = document.getElementById('tableSearchBox');
+      if (searchBox) searchBox.value = '';
+
+      saveData(false);
+      renderTable();
+      renderTeachersTab();
+      renderClassesTab();
+      document.getElementById('titleDisplay').textContent = state.title || 'RÉPARTITION SEP';
+      showTab('table'); // ramène sur le tableau pour que le résultat soit immédiatement visible
+
+      // Si le JSON chargé contient un mot de passe, proposer de verrouiller immédiatement
+      if (state._lockPassword) {
+        showToast('Sauvegarde chargée ✓ — fichier protégé par mot de passe');
+        if (confirm('Ce fichier est protégé par un mot de passe.\nVoulez-vous le verrouiller maintenant ?')) {
+          applyLockState(true);
+        }
+      } else {
+        showToast('Sauvegarde chargée ✓');
+      }
+    } catch(err) {
+      showToast('Erreur de lecture du fichier : ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════════════════════════
+
+function showTab(name) {
+  if (isLocked && LOCKED_TABS.includes(name)) {
+    showToast('🔒 Onglet verrouillé — déverrouillez avec le mot de passe pour y accéder');
+    return;
+  }
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelectorAll('.tab')[['table','teachers','classes','synthese'].indexOf(name)].classList.add('active');
+
+  if (name === 'table') renderTable();
+  if (name === 'teachers') renderTeachersTab();
+  if (name === 'classes') renderClassesTab();
+  if (name === 'synthese') renderSynthese();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  TABLE RENDERING
+// ════════════════════════════════════════════════════════════════════
+
+let currentFilter = '';
+let currentClassFilter = '';
+let editingCell = null;
+
+function renderTable() {
+  const table = document.getElementById('mainTable');
+  const teachers = state.teachers;
+  const rows = state.rows;
+
+  // Build class filter
+  const classFilter = document.getElementById('classFilter');
+  const classes = [...new Set(rows.map(r => r.cls))];
+  classFilter.innerHTML = '<option value="">Toutes les classes</option>' +
+    classes.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (currentClassFilter) classFilter.value = currentClassFilter;
+
+  // Filter rows
+  const filteredRows = rows.filter(r => {
+    if (currentClassFilter && r.cls !== currentClassFilter) return false;
+    if (currentFilter) {
+      const q = currentFilter.toLowerCase();
+      return r.cls.toLowerCase().includes(q) || r.disc.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  // Group teachers by discipline group — ordre défini dans state.groupOrder
+  const groups = getOrderedGroups();
+
+  // ── COLUMN ORDER ──
+  // [DIVISIONS sticky] [DISCIPLINE sticky] [CTRL sticky] | [STMS][BIO][H/E][Cl][G][NB/G][H/P] | [teachers…]
+  // freeze pane: first 3 cols fixed (DIVISIONS, DISCIPLINE, CTRL)
+  // H/P and beyond scroll
+
+  // Build headers — 3 header rows
+  let thead = '<thead>';
+
+  // ── ROW 1: group banners ──
+  thead += '<tr>';
+  // 3 sticky fixed cols
+  thead += `<th class="col-class" rowspan="3" style="border-bottom:2px solid #5a6470">DIVISIONS</th>`;
+  thead += `<th class="col-disc" rowspan="3" style="border-bottom:2px solid #5a6470">DISCIPLINE</th>`;
+  thead += `<th class="sticky-ctrl" rowspan="3" style="text-align:center;font-size:10px;background:#dde3ea;color:#2c3e50;border-bottom:2px solid #5a6470">CTRL</th>`;
+  // Horaire cols — toutes figées jusqu'à H/P inclus
+  thead += `<th class="sticky-stms" rowspan="3" style="border-bottom:2px solid #5a6470">STMS</th>`;
+  thead += `<th class="sticky-bio"  rowspan="3" style="border-bottom:2px solid #5a6470">BIO</th>`;
+  thead += `<th class="sticky-he"   rowspan="3" style="border-bottom:2px solid #5a6470">H/E</th>`;
+  thead += `<th class="sticky-cl"   rowspan="3" style="border-bottom:2px solid #5a6470">Cl.E.</th>`;
+  thead += `<th class="sticky-g"    rowspan="3" style="border-bottom:2px solid #5a6470">G</th>`;
+  thead += `<th class="sticky-nbg"  rowspan="3" style="border-bottom:2px solid #5a6470">NB/G</th>`;
+  thead += `<th class="sticky-hp"   rowspan="3">H/P</th>`;
+  // Teacher group headers (scroll area) — couleur par groupe
+  groups.forEach(g => {
+    const cnt = teachers.filter(t => t.group === g).length;
+    const gc = getGroupColor(g);
+    thead += `<th class="disc-group" colspan="${cnt}" style="background:${gc.banner};color:${gc.bannerTxt};border-left:2.5px solid ${gc.border};border-right:2.5px solid ${gc.border};border-top:1.5px solid ${gc.border}">${g}</th>`;
+  });
+  thead += '</tr>';
+
+  // ── ROW 2: teacher names (vertical) — couleur par groupe ──
+  thead += '<tr>';
+  let lastGroupHdr = null;
+  teachers.forEach(t => {
+    const gc = getGroupColor(t.group);
+    const isStart = t.group !== lastGroupHdr;
+    lastGroupHdr = t.group;
+    const shortName = t.name.length > 18 ? t.name.substring(0,18) : t.name;
+    thead += `<th class="teacher-header" data-tid="${t.id}" title="${t.name}" onclick="openTeacherEdit('${t.id}')"
+      style="background:${gc.colBg} !important;
+             border-left:${isStart ? '2.5px solid '+gc.border : '1px solid '+gc.border};
+             border-right:1px solid ${gc.border};
+             border-top:1.5px solid ${gc.border}">
+      <span class="teacher-name-vertical" style="color:${gc.bannerTxt}">${shortName}</span>
+    </th>`;
+  });
+  thead += '</tr>';
+
+  // ── ROW 3: quotas — couleur par groupe ──
+  thead += '<tr>';
+  lastGroupHdr = null;
+  teachers.forEach(t => {
+    const gc = getGroupColor(t.group);
+    const isStart = t.group !== lastGroupHdr;
+    lastGroupHdr = t.group;
+    thead += `<th class="quota" data-tid="${t.id}"
+      style="background:${gc.quotaBg} !important;color:${gc.bannerTxt};
+             border-left:${isStart ? '2.5px solid '+gc.border : '1px solid '+gc.border};
+             border-right:1px solid ${gc.border};
+             border-bottom:2px solid ${gc.border}">
+      <input class="quota-input" type="number" step="0.5" min="0" value="${t.quota}"
+        style="color:${gc.bannerTxt}"
+        data-tid="${t.id}" title="Quota ${t.name}"
+        onchange="updateTeacherQuota(this)">
+    </th>`;
+  });
+  thead += '</tr>';
+  thead += '</thead>';
+
+  // ── BODY ──
+  let tbody = '<tbody>';
+  let lastCls = null;
+
+  // Pré-calcul du nombre de lignes par division consécutive, pour le rowspan
+  const divisionSpan = {}; // index de la 1ère ligne de la division -> nb de lignes
+  {
+    let spanStart = 0;
+    for (let i = 1; i <= filteredRows.length; i++) {
+      if (i === filteredRows.length || filteredRows[i].cls !== filteredRows[spanStart].cls) {
+        divisionSpan[spanStart] = i - spanStart;
+        spanStart = i;
+      }
+    }
+  }
+
+  filteredRows.forEach((row, ri) => {
+    const isNewClass = row.cls !== lastCls;
+    lastCls = row.cls;
+    const isLastOfClass = (ri === filteredRows.length - 1) || (filteredRows[ri + 1].cls !== row.cls);
+
+    // Compute CTRL value
+    const assignedSum = teachers.reduce((s, t) => s + ((row.vals || {})[t.id] || 0), 0);
+    const hp = row.hp || 0;
+    let ctrlCls = 'sticky-ctrl ctrl-col';
+    if (hp > 0 && assignedSum > 0) {
+      if (Math.abs(assignedSum - hp) < 0.01) ctrlCls = 'sticky-ctrl ctrl-ok';
+      else ctrlCls = 'sticky-ctrl ctrl-bad';
+    } else if (assignedSum > 0) {
+      ctrlCls = 'sticky-ctrl ctrl-col';
+    }
+
+    const divisionClasses = [isNewClass ? 'division-start' : '', isLastOfClass ? 'division-end' : ''].filter(Boolean).join(' ');
+
+    tbody += `<tr data-ri="${ri}" data-cls="${row.cls}" class="${divisionClasses}">`;
+    // Cellule DIVISIONS fusionnée : émise une seule fois par division, avec rowspan,
+    // texte centré verticalement — comme une cellule fusionnée de tableur.
+    if (isNewClass) {
+      const span = divisionSpan[ri];
+      // Note de division : récupère la note du premier état de la division
+      const divNote = state.rows.find(r => r.cls === row.cls)?.note || '';
+      const noteIcon = divNote ? ' 📝' : '';
+      const noteTitle = divNote ? escQ(divNote) : 'Cliquer sur 📝 pour ajouter une note';
+      tbody += `<td class="col-class col-class-merged" rowspan="${span}">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:center">
+          <span style="font-weight:700;font-size:11px;color:var(--accent2)">${row.cls}</span>
+          <button onclick="editDivisionNote('${escQ(row.cls)}')" 
+            title="${noteTitle}"
+            style="background:none;border:none;cursor:pointer;font-size:13px;padding:0;opacity:${divNote?1:0.35}" 
+            title="${noteTitle}">📝</button>
+        </div>
+      </td>`;
+    }
+    tbody += `<td class="col-disc">${row.disc}</td>`;
+    // CTRL (sticky, after DISCIPLINE)
+    tbody += `<td class="${ctrlCls}" style="text-align:center">${assignedSum > 0 ? (Number.isInteger(assignedSum) ? assignedSum : assignedSum.toFixed(2).replace(/\.?0+$/,'')) : ''}</td>`;
+
+    // Horaires columns — toutes figées jusqu'à H/P inclus
+    const horaireSticky = {stms:'sticky-stms', biotech:'sticky-bio', he:'sticky-he', clent:'sticky-cl', g:'sticky-g', nbg:'sticky-nbg', hp:'sticky-hp'};
+    ['stms','biotech','he','clent','g','nbg','hp'].forEach((k) => {
+      const v = row[k] || 0;
+      const stickyClass = horaireSticky[k];
+      tbody += `<td class="val-cell ${stickyClass}" onclick="editHoraire(${ri}, '${k}', this)">${v > 0 ? v : ''}</td>`;
+    });
+
+    // Teacher columns — séparateur prononcé entre groupes
+    let lastGroupBody = null;
+    teachers.forEach(t => {
+      const v = (row.vals || {})[t.id] || 0;
+      const cls = v > 0 ? ' has-val' : '';
+      const isGroupStart = t.group !== lastGroupBody;
+      lastGroupBody = t.group;
+      const gc = getGroupColor(t.group);
+      const groupBorder = isGroupStart ? `border-left:2.5px solid ${gc.border} !important;` : '';
+      tbody += `<td class="val-cell${cls}" style="${groupBorder}" onclick="editCell(${ri}, '${t.id}', this)">${v > 0 ? v : ''}</td>`;
+    });
+
+    tbody += '</tr>';
+  });
+
+  // ── TOTALS ROW ──
+  tbody += '<tr class="summary-row">';
+  tbody += '<td class="col-class" style="color:var(--accent2);font-weight:700">TOTAL</td>';
+  tbody += '<td class="col-disc" style="color:var(--accent2);font-weight:700">Heures attribuées</td>';
+  const grandAssigned = filteredRows.reduce((s, r) => s + teachers.reduce((ss, t) => ss + ((r.vals||{})[t.id]||0), 0), 0);
+  tbody += `<td class="sticky-ctrl ctrl-col" style="text-align:center">${grandAssigned > 0 ? grandAssigned.toFixed(1).replace('.0','') : ''}</td>`;
+  const horaireSticky2 = {stms:'sticky-stms', biotech:'sticky-bio', he:'sticky-he', clent:'sticky-cl', g:'sticky-g', nbg:'sticky-nbg', hp:'sticky-hp'};
+  ['stms','biotech','he','clent','g','nbg','hp'].forEach(k => {
+    const sum = filteredRows.reduce((s, r) => s + (r[k] || 0), 0);
+    tbody += `<td class="${horaireSticky2[k]}" style="color:var(--accent2);font-weight:700;text-align:center">${sum > 0 ? sum : ''}</td>`;
+  });
+  let lastGroupTotal = null;
+  teachers.forEach(t => {
+    const sum = filteredRows.reduce((s, r) => s + ((r.vals || {})[t.id] || 0), 0);
+    const isGroupStart = t.group !== lastGroupTotal;
+    lastGroupTotal = t.group;
+    const gc = getGroupColor(t.group);
+    const groupBorder = isGroupStart ? `border-left:2.5px solid ${gc.border};` : '';
+    tbody += `<td class="row-total" style="text-align:center;${groupBorder}">${sum > 0 ? sum : ''}</td>`;
+  });
+  tbody += '</tr>';
+
+  // ── HSA ROW ──
+  tbody += '<tr class="summary-row ecart">';
+  tbody += '<td class="col-class" style="color:var(--accent2);font-weight:700">HSA</td>';
+  tbody += '<td class="col-disc" style="color:var(--muted)">Solde attribué – quota</td>';
+  tbody += '<td class="sticky-ctrl"></td>';
+  ['stms','biotech','he','clent','g','nbg','hp'].forEach(k => {
+    tbody += `<td class="${horaireSticky2[k]}"></td>`;
+  });
+  let lastGroupHsa = null;
+  teachers.forEach(t => {
+    const assigned = filteredRows.reduce((s, r) => s + ((r.vals || {})[t.id] || 0), 0);
+    const hsa = assigned - t.quota;
+    let cls = 'row-hsa-ok';
+    if (Math.abs(hsa) > 0.01) cls = hsa > 0 ? 'row-hsa-warn' : 'row-hsa-danger';
+    const label = hsa === 0 ? '0' : (hsa > 0 ? '+' : '') + hsa.toFixed(2).replace(/\.?0+$/,'');
+    const isGroupStart = t.group !== lastGroupHsa;
+    lastGroupHsa = t.group;
+    const gc = getGroupColor(t.group);
+    const groupBorder = isGroupStart ? `border-left:2.5px solid ${gc.border};` : '';
+    tbody += `<td class="${cls}" style="text-align:center;${groupBorder}">${label}</td>`;
+  });
+  tbody += '</tr>';
+
+  tbody += '</tbody>';
+  table.innerHTML = thead + tbody;
+  updateStats();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  CELL EDITING
+// ════════════════════════════════════════════════════════════════════
+
+let modalData = {};
+
+function editCell(ri, tid, cell) {
+  if (guardLocked('modifier les heures')) return;
+  const rows = getFilteredRows();
+  const row = rows[ri];
+  const teacher = state.teachers.find(t => t.id === tid);
+  const current = (row.vals || {})[tid] || 0;
+
+  modalData = { ri, tid, cell, type: 'teacher' };
+  document.getElementById('modalTitle').textContent = `${row.cls} – ${row.disc}`;
+  document.getElementById('modalBody').innerHTML = `
+    <p style="color:var(--muted);font-size:12px;margin-bottom:10px">
+      Enseignant : <strong style="color:var(--accent2)">${teacher.name}</strong> (quota: ${teacher.quota}h)
+    </p>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:12px">H/P : <strong style="color:var(--text)">${row.hp}h</strong></p>
+    <div class="field-row">
+      <label>Heures attribuées</label>
+      <input type="number" id="modalInput" step="0.5" min="0" value="${current}" 
+        style="max-width:120px" autofocus onkeydown="if(event.key==='Enter')saveModalValue()">
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('modalInput').select(), 50);
+}
+
+function editHoraire(ri, key, cell) {
+  if (guardLocked('modifier les horaires')) return;
+  const rows = getFilteredRows();
+  const row = rows[ri];
+  const labels = {stms:'STMS', biotech:'BIOTECH', he:'H/E', clent:'Cl. Ent.', g:'G', nbg:'NB/G', hp:'H/P'};
+  const stateRow = state.rows.find(r => r.cls === row.cls && r.disc === row.disc);
+  const current = stateRow ? (stateRow[key] || 0) : (row[key] || 0);
+
+  // Pour H/P : afficher le mode de calcul actuel
+  const isHP = key === 'hp';
+  const isManual = stateRow ? !!stateRow.hp_manual : false;
+  const autoVal = stateRow ? Math.round(((stateRow.nbg||0)*(stateRow.g||0)+(stateRow.clent||0))*100)/100 : 0;
+
+  let extraInfo = '';
+  if (isHP) {
+    extraInfo = `
+      <div style="background:#eef5fb;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--muted)">
+        <div>Formule automatique : <strong style="color:var(--accent2)">NB/G × G + Cl.Ent. = ${autoVal}h</strong></div>
+        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;cursor:pointer">
+          <input type="checkbox" id="hpManualCb" ${isManual?'checked':''}>
+          <span>Saisie manuelle (désactive le calcul automatique pour cette ligne)</span>
+        </label>
+      </div>`;
+  } else if (['clent','g','nbg'].includes(key) && stateRow && !stateRow.hp_manual) {
+    extraInfo = `<p style="font-size:11px;color:var(--ok);margin-bottom:8px">⟳ H/P sera recalculé automatiquement après validation.</p>`;
+  }
+
+  modalData = { ri, key, type: 'horaire' };
+  document.getElementById('modalTitle').textContent = `${row.cls} – ${row.disc}`;
+  document.getElementById('modalBody').innerHTML = `
+    <p style="color:var(--muted);font-size:12px;margin-bottom:10px">Colonne : <strong style="color:var(--accent2)">${labels[key]}</strong></p>
+    ${extraInfo}
+    <div class="field-row">
+      <label>Valeur</label>
+      <input type="number" id="modalInput" step="0.5" min="0" value="${current}"
+        style="max-width:120px" autofocus onkeydown="if(event.key==='Enter')saveModalValue()">
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('modalInput').select(), 50);
+}
+
+function getFilteredRows() {
+  return state.rows.filter(r => {
+    if (currentClassFilter && r.cls !== currentClassFilter) return false;
+    if (currentFilter) {
+      const q = currentFilter.toLowerCase();
+      return r.cls.toLowerCase().includes(q) || r.disc.toLowerCase().includes(q);
+    }
+    return true;
+  });
+}
+
+function saveModalValue() {
+  if (isLocked && modalData.type !== 'teacherDetail') {
+    showToast('🔒 Fichier verrouillé — déverrouillez pour modifier les données');
+    closeModalBtn();
+    return;
+  }
+  const inp = document.getElementById('modalInput');
+
+  if (modalData.type === 'divisionNote') {
+    const inp = document.getElementById('modalInput');
+    const note = inp ? inp.value.trim() : '';
+    // Stocke la note sur toutes les lignes de la division (on la lit depuis la première)
+    state.rows.filter(r => r.cls === modalData.cls).forEach(r => {
+      if (note) r.note = note;
+      else delete r.note;
+    });
+    saveData();
+    closeModalBtn();
+    renderTable();
+    return;
+  }
+
+  if (modalData.type === 'renameClass') {
+    const inp = document.getElementById('modalInput');
+    const newName = (inp ? inp.value.trim() : '').toUpperCase();
+    const oldName = modalData.cls;
+    if (!newName || newName === oldName) { closeModalBtn(); return; }
+    if (state.rows.some(r => r.cls === newName)) {
+      showToast(`Le nom "${newName}" existe déjà`); return;
+    }
+    state.rows.forEach(r => { if (r.cls === oldName) r.cls = newName; });
+    if (selectedClass === oldName) selectedClass = newName;
+    saveData();
+    renderClassesTab();
+    renderTable();
+    closeModalBtn();
+    showToast(`Classe renommée en "${newName}" ✓`);
+    return;
+  }
+
+  if (modalData.type === 'renameGroup') {
+    const inp2 = document.getElementById('modalInput');
+    const newName = (inp2 ? inp2.value.trim() : '').toUpperCase();
+    const oldName = modalData.group;
+    if (!newName || newName === oldName) { closeModalBtn(); return; }
+    if (state.teachers.some(t => t.group === newName)) {
+      showToast(`Le groupe "${newName}" existe déjà`); return;
+    }
+    state.teachers.forEach(t => { if (t.group === oldName) t.group = newName; });
+    saveData();
+    renderTeachersTab();
+    renderTable();
+    closeModalBtn();
+    showToast(`Groupe renommé en "${newName}" ✓`);
+    return;
+  }
+
+  if (modalData.type === 'teacherMeta') {
+    const t = state.teachers.find(x => x.id === modalData.tid);
+    if (t) {
+      const n = document.getElementById('modalTeacherName');
+      const q = document.getElementById('modalTeacherQuota');
+      const g = document.getElementById('modalTeacherGroup');
+      if (n) t.name = n.value.trim() || t.name;
+      if (q) t.quota = parseFloat(q.value) || 0;
+      if (g) t.group = g.value.trim() || t.group;
+    }
+    sortTeachersAlpha();
+    closeModalBtn();
+    renderTable();
+    renderGroupList();
+    renderTeacherList();
+    saveData();
+    return;
+  }
+
+  const val = parseFloat(inp ? inp.value : 0) || 0;
+
+  if (modalData.type === 'teacher') {
+    const rows = getFilteredRows();
+    const row = rows[modalData.ri];
+    const stateRow = state.rows.find(r => r.cls === row.cls && r.disc === row.disc);
+    if (stateRow) {
+      if (!stateRow.vals) stateRow.vals = {};
+      if (val === 0) delete stateRow.vals[modalData.tid];
+      else stateRow.vals[modalData.tid] = val;
+    }
+  } else if (modalData.type === 'horaire') {
+    const rows = getFilteredRows();
+    const row = rows[modalData.ri];
+    const stateRow = state.rows.find(r => r.cls === row.cls && r.disc === row.disc);
+    if (stateRow) {
+      stateRow[modalData.key] = val;
+      if (modalData.key === 'hp') {
+        // Lit le checkbox saisie manuelle si présent
+        const cb = document.getElementById('hpManualCb');
+        stateRow.hp_manual = cb ? cb.checked : true;
+      } else if (['clent','g','nbg'].includes(modalData.key) && !stateRow.hp_manual) {
+        // Calcul automatique : H/P = NB/G × G + Cl.Ent.
+        const nbg = stateRow.nbg || 0;
+        const g   = stateRow.g   || 0;
+        const cle = stateRow.clent || 0;
+        stateRow.hp = Math.round((nbg * g + cle) * 100) / 100;
+      }
+    }
+  }
+
+  closeModalBtn();
+  renderTable();
+  saveData();
+}
+
+function closeModal(e) { if (e.target === document.getElementById('modalOverlay')) closeModalBtn(); }
+function closeModalBtn() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  // Reset any custom styling applied by special modals (e.g. teacher detail popup)
+  const modalEl = document.querySelector('#modalOverlay .modal');
+  if (modalEl) modalEl.style.maxWidth = '';
+  const footer = document.getElementById('modalFooter');
+  if (footer) footer.style.display = 'flex';
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  FILTERS
+// ════════════════════════════════════════════════════════════════════
+
+function filterTable(q) { currentFilter = q; renderTable(); }
+function filterByClass(cls) { currentClassFilter = cls; renderTable(); }
+
+function editDivisionNote(cls) {
+  if (guardLocked('modifier une note')) return;
+  const divRows = state.rows.filter(r => r.cls === cls);
+  if (!divRows.length) return;
+  const currentNote = divRows[0].note || '';
+
+  modalData = { type: 'divisionNote', cls };
+  document.getElementById('modalTitle').textContent = `Note — ${cls}`;
+  document.getElementById('modalBody').innerHTML = `
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+      Cette note s'affiche en info-bulle au survol de la cellule de la division dans le tableau.
+    </p>
+    <textarea id="modalInput" rows="4"
+      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:12px;color:var(--text);font-family:'Calibri','Carlito',sans-serif;resize:vertical"
+      placeholder="Saisir une note pour la division ${cls}…"
+      onkeydown="if(event.key==='Enter'&&event.ctrlKey)saveModalValue()">${escQ(currentNote)}</textarea>
+    <p style="font-size:10px;color:var(--muted);margin-top:6px">Ctrl+Entrée pour valider</p>
+    ${currentNote ? `<button class="btn" style="margin-top:8px;color:var(--danger);font-size:11px" onclick="clearDivisionNote('${escQ(cls)}')">🗑 Supprimer la note</button>` : ''}
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => { const el=document.getElementById('modalInput'); if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);} }, 50);
+}
+
+function clearDivisionNote(cls) {
+  state.rows.filter(r => r.cls === cls).forEach(r => { delete r.note; });
+  saveData();
+  closeModalBtn();
+  renderTable();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  RESET — vider uniquement les heures attribuées aux enseignants
+//  (colonnes enseignants), sans toucher aux colonnes horaires
+//  (STMS, BIOTECH, H/E, Cl.Ent., G, NB/G, H/P) ni aux lignes TOTAL/HSA
+//  (qui sont de toute façon calculées dynamiquement, pas stockées).
+// ════════════════════════════════════════════════════════════════════
+
+function resetTeacherAssignments() {
+  if (guardLocked('vider les heures')) return;
+  const filterActive = !!(currentClassFilter || currentFilter);
+  const targetRows = filterActive ? getFilteredRows() : state.rows;
+
+  // Compter le nombre de cellules réellement remplies dans le périmètre ciblé
+  let filledCount = 0;
+  targetRows.forEach(r => {
+    if (r.vals) filledCount += Object.values(r.vals).filter(v => v > 0).length;
+  });
+
+  if (filledCount === 0) {
+    showToast('Aucune heure enseignant à supprimer dans ce périmètre.');
+    return;
+  }
+
+  const scopeLabel = filterActive
+    ? `les lignes actuellement filtrées (${targetRows.length} ligne(s))`
+    : `TOUT le tableau (${targetRows.length} ligne(s))`;
+
+  const msg = `Vider les heures attribuées aux enseignants pour ${scopeLabel} ?\n\n`
+    + `${filledCount} cellule(s) seront effacées.\n`
+    + `Les colonnes STMS, BIOTECH, H/E, Cl.Ent., G, NB/G, H/P ne seront pas modifiées.\n`
+    + `Cette action est irréversible (pensez à sauvegarder un .json avant si besoin).`;
+
+  if (!confirm(msg)) return;
+
+  // Identifie précisément les lignes de state.rows à traiter (par référence,
+  // car targetRows peut être une copie filtrée provenant de getFilteredRows())
+  const targetSet = new Set(targetRows);
+  state.rows.forEach(r => {
+    if (targetSet.has(r) && r.vals) {
+      r.vals = {};
+    }
+  });
+
+  saveData();
+  renderTable();
+  showToast(`✓ ${filledCount} heure(s) enseignant(s) effacée(s)`);
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  TEACHERS TAB
+// ════════════════════════════════════════════════════════════════════
+
+function renderTeachersTab() {
+  renderTeacherList();
+  renderGroupList();
+}
+
+function renderTeacherList() {
+  const list = document.getElementById('teacherList');
+  if (!list) return;
+  const groups = [...new Set(state.teachers.map(x => x.group))];
+
+  list.innerHTML = state.teachers.map((t, i) => `
+    <div class="teacher-item">
+      <span style="color:var(--muted);font-size:11px;width:22px;flex-shrink:0">${i+1}</span>
+      <input style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 8px;font-family:'Calibri','Carlito',sans-serif;font-size:12px;min-width:0"
+        value="${escQ(t.name)}"
+        oninput="state.teachers[${i}].name=this.value;saveData();"
+        onchange="sortTeachersAlpha();renderTable();renderGroupList();renderTeacherList();">
+      <select style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:3px 6px;font-size:11px;max-width:120px"
+        onchange="state.teachers[${i}].group=this.value;saveData();renderTable();renderGroupList();">
+        ${groups.map(g => `<option value="${escQ(g)}" ${g===t.group?'selected':''}>${g}</option>`).join('')}
+      </select>
+      <span style="font-size:11px;color:var(--muted);flex-shrink:0">Quota:</span>
+      <input type="number" step="0.5" min="0" value="${t.quota}"
+        style="width:55px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--accent2);padding:3px 6px;font-family:'Calibri','Carlito',sans-serif;font-size:12px;text-align:center;flex-shrink:0"
+        oninput="state.teachers[${i}].quota=parseFloat(this.value)||0;saveData();">
+      <button class="del-btn" onclick="deleteTeacher(${i})" style="color:var(--danger);flex-shrink:0" title="Supprimer">🗑</button>
+    </div>
+  `).join('') || '<p style="color:var(--muted);font-size:12px">Aucun enseignant.</p>';
+}
+
+// ── Palette de couleurs par groupe de disciplines (cyclique, jusqu'à 10 groupes) ──
+// [bg bandeau, text bandeau, bg colonne enseignant, text quota, border]
+const GROUP_COLORS = [
+  { banner:'#fde8cc', bannerTxt:'#7a3b00', colBg:'#fff8ee', quotaBg:'#fef0d5', border:'#f0c080' }, // orange (défaut)
+  { banner:'#cce5ff', bannerTxt:'#003d7a', colBg:'#f0f8ff', quotaBg:'#dceeff', border:'#80baff' }, // bleu
+  { banner:'#d4edda', bannerTxt:'#155724', colBg:'#f2fbf4', quotaBg:'#c8e6cd', border:'#7ec89a' }, // vert
+  { banner:'#f8d7da', bannerTxt:'#721c24', colBg:'#fff5f5', quotaBg:'#f5c6cb', border:'#f08090' }, // rouge
+  { banner:'#e2d9f3', bannerTxt:'#3d1a78', colBg:'#f8f5ff', quotaBg:'#d5c8ef', border:'#b09ad8' }, // violet
+  { banner:'#d1ecf1', bannerTxt:'#0c5460', colBg:'#f0fafb', quotaBg:'#bee5eb', border:'#7ecdd8' }, // cyan
+  { banner:'#fff3cd', bannerTxt:'#856404', colBg:'#fffdf0', quotaBg:'#ffeeba', border:'#ffc800' }, // jaune
+  { banner:'#fce8d5', bannerTxt:'#7a3000', colBg:'#fdf6f0', quotaBg:'#f8d5b5', border:'#e89060' }, // saumon
+  { banner:'#dde8d8', bannerTxt:'#2d4a1e', colBg:'#f4f8f2', quotaBg:'#c8ddc0', border:'#88b878' }, // vert sauge
+  { banner:'#e8e0f8', bannerTxt:'#3a1a6a', colBg:'#f6f2ff', quotaBg:'#d0c0f0', border:'#9870d8' }, // indigo
+];
+
+function getGroupColor(groupName) {
+  const groups = getOrderedGroups();
+  const idx = groups.indexOf(groupName);
+  return GROUP_COLORS[idx >= 0 ? idx % GROUP_COLORS.length : 0];
+}
+
+
+//    sinon déduit l'ordre d'apparition dans state.teachers
+function getOrderedGroups() {
+  const allGroups = [...new Set(state.teachers.map(t => t.group))];
+  if (!state.groupOrder || !Array.isArray(state.groupOrder)) {
+    state.groupOrder = [...allGroups];
+  }
+  // S'assure que tous les groupes existants sont dans groupOrder
+  allGroups.forEach(g => { if (!state.groupOrder.includes(g)) state.groupOrder.push(g); });
+  // Retire les groupes qui n'existent plus
+  state.groupOrder = state.groupOrder.filter(g => allGroups.includes(g));
+  return state.groupOrder;
+}
+
+function moveGroup(g, dir) {
+  if (guardLocked('réordonner les groupes')) return;
+  const groups = getOrderedGroups();
+  const idx = groups.indexOf(g);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= groups.length) return;
+  [groups[idx], groups[newIdx]] = [groups[newIdx], groups[idx]];
+  // Réordonne aussi les enseignants dans state.teachers pour refléter le nouvel ordre
+  state.groupOrder = [...groups];
+  const reordered = [];
+  groups.forEach(grp => { reordered.push(...state.teachers.filter(t => t.group === grp)); });
+  state.teachers = reordered;
+  saveData();
+  renderTeachersTab();
+  renderTable();
+}
+
+function renderGroupList() {
+  const container = document.getElementById('groupList');
+  if (!container) return;
+  const groups = getOrderedGroups();
+
+  if (groups.length === 0) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:12px">Aucun groupe défini.</p>';
+    return;
+  }
+
+  container.innerHTML = groups.map((g, gi) => {
+    const members = state.teachers.filter(t => t.group === g);
+    return `
+      <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden">
+        <div style="background:#fde8cc;padding:7px 12px;display:flex;align-items:center;gap:8px">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <button class="btn" style="padding:1px 6px;font-size:10px;line-height:1.2" onclick="moveGroup('${escQ(g)}', -1)" ${gi===0?'disabled':''} title="Monter">▲</button>
+            <button class="btn" style="padding:1px 6px;font-size:10px;line-height:1.2" onclick="moveGroup('${escQ(g)}', 1)" ${gi===groups.length-1?'disabled':''} title="Descendre">▼</button>
+          </div>
+          <span style="font-weight:700;font-size:12px;color:#7a3b00;flex:1">${g}</span>
+          <span style="font-size:11px;color:#b05000;background:rgba(180,80,0,0.1);padding:1px 8px;border-radius:10px">${members.length} enseignant${members.length>1?'s':''}</span>
+          <button class="btn" style="padding:2px 8px;font-size:11px" onclick="renameGroupPrompt('${escQ(g)}')" title="Renommer">✏️</button>
+          <button class="btn" style="padding:2px 8px;font-size:11px;color:var(--danger);border-color:var(--danger)"
+            onclick="deleteGroup('${escQ(g)}')" title="Supprimer le groupe">🗑</button>
+        </div>
+        <div style="padding:6px 12px 8px">
+          ${members.length === 0
+            ? '<p style="font-size:11px;color:var(--muted);margin:4px 0">Aucun membre.</p>'
+            : members.map(t => `
+              <div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border)">
+                <span style="flex:1;font-size:12px;color:var(--text)">${t.name}</span>
+                <span style="font-size:11px;color:var(--muted)">${t.quota}h</span>
+              </div>`).join('')
+          }
+          <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
+            <input type="text" placeholder="Nom du nouvel enseignant"
+              id="newTeacherInGroup_${CSS.escape(g)}"
+              style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 8px;font-size:11px"
+              onkeydown="if(event.key==='Enter')addTeacherInGroup('${escQ(g)}')">
+            <input type="number" step="0.5" min="0" placeholder="Quota"
+              id="newTeacherQuotaInGroup_${CSS.escape(g)}"
+              style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--accent2);padding:4px 6px;font-size:11px;text-align:center"
+              onkeydown="if(event.key==='Enter')addTeacherInGroup('${escQ(g)}')">
+            <button class="btn primary" style="padding:3px 10px;font-size:11px" onclick="addTeacherInGroup('${escQ(g)}')">+ Ajouter</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function addGroup() {
+  if (guardLocked('ajouter un groupe')) return;
+  const inp = document.getElementById('newGroupName');
+  const name = inp.value.trim().toUpperCase();
+  if (!name) return;
+  if (state.teachers.some(t => t.group === name)) {
+    showToast(`Le groupe "${name}" existe déjà`); return;
+  }
+  // Create a placeholder teacher so the group appears; user can rename/add real ones
+  state.teachers.push({ id: 'tn_' + Date.now(), name: 'NOUVEAU', quota: 18, group: name });
+  inp.value = '';
+  saveData();
+  renderTeachersTab();
+  renderTable();
+  showToast(`Groupe "${name}" créé ✓`);
+}
+
+function renameGroupPrompt(g) {
+  if (guardLocked('renommer un groupe')) return;
+  modalData = { type: 'renameGroup', group: g };
+  document.getElementById('modalTitle').textContent = `Renommer le groupe "${g}"`;
+  document.getElementById('modalBody').innerHTML = `
+    <div class="field-row">
+      <label>Nouveau nom</label>
+      <input type="text" id="modalInput" value="${escQ(g)}" style="flex:1;text-transform:uppercase"
+        autofocus onkeydown="if(event.key==='Enter')saveModalValue()">
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px">Tous les enseignants de ce groupe seront mis à jour.</p>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => { const el = document.getElementById('modalInput'); if (el) el.select(); }, 50);
+}
+
+function deleteGroup(g) {
+  if (guardLocked('supprimer un groupe')) return;
+  const members = state.teachers.filter(t => t.group === g);
+  if (!confirm(`Supprimer le groupe "${g}" ?\n${members.length} enseignant(s) et toutes leurs heures attribuées seront supprimés.`)) return;
+  const ids = members.map(t => t.id);
+  state.teachers = state.teachers.filter(t => t.group !== g);
+  state.rows.forEach(r => { if (r.vals) ids.forEach(id => delete r.vals[id]); });
+  saveData();
+  renderTeachersTab();
+  renderTable();
+  showToast(`Groupe "${g}" supprimé`);
+}
+
+function addTeacherInGroup(g) {
+  if (guardLocked('ajouter un enseignant')) return;
+  const nameInp = document.getElementById('newTeacherInGroup_' + CSS.escape(g));
+  const quotaInp = document.getElementById('newTeacherQuotaInGroup_' + CSS.escape(g));
+  const name = nameInp ? nameInp.value.trim() : '';
+  if (!name) return;
+  const quota = quotaInp ? (parseFloat(quotaInp.value) || 0) : 18;
+  state.teachers.push({ id: 'tn_' + Date.now(), name, quota, group: g });
+  sortTeachersAlpha();
+  saveData();
+  renderTeachersTab();
+  renderTable();
+  showToast(`${name} ajouté(e) au groupe "${g}" ✓`);
+}
+
+function openTeacherEdit(tid) {
+  if (guardLocked('modifier un enseignant')) return;
+  const t = state.teachers.find(x => x.id === tid);
+  if (!t) return;
+  const idx = state.teachers.indexOf(t);
+  modalData = { type: 'teacherMeta', tid };
+  document.getElementById('modalTitle').textContent = 'Modifier l\'enseignant';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="field-row">
+      <label>Nom</label>
+      <input type="text" id="modalTeacherName" value="${t.name}"
+        style="flex:1" autofocus onkeydown="if(event.key==='Enter')saveModalValue()">
+    </div>
+    <div class="field-row">
+      <label>Quota (h)</label>
+      <input type="number" id="modalTeacherQuota" step="0.5" min="0" value="${t.quota}"
+        style="max-width:100px" onkeydown="if(event.key==='Enter')saveModalValue()">
+    </div>
+    <div class="field-row">
+      <label>Groupe</label>
+      <input type="text" id="modalTeacherGroup" value="${t.group}" style="flex:1">
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('modalTeacherName').select(), 50);
+}
+
+
+
+function updateTeacherName(inp) {
+  // kept for compatibility — names are now edited via click modal on column header
+  const tid = inp ? inp.dataset.tid : null;
+  if (!tid) return;
+  const t = state.teachers.find(t => t.id === tid);
+  if (t) { t.name = inp.value; saveData(); }
+}
+
+function updateTeacherQuota(inp) {
+  const tid = inp.dataset.tid;
+  const t = state.teachers.find(t => t.id === tid);
+  if (t) { t.quota = parseFloat(inp.value) || 0; saveData(); }
+}
+
+function escQ(s) { return (s||'').replace(/'/g,"&#39;"); }
+
+// ── Tri alphabétique des enseignants au sein de chaque groupe,
+//    en préservant l'ordre des groupes défini dans state.groupOrder ──
+function sortTeachersAlpha() {
+  const groups = getOrderedGroups();
+  const sorted = [];
+  groups.forEach(g => {
+    const members = state.teachers
+      .filter(t => t.group === g)
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+    sorted.push(...members);
+  });
+  // Ajoute les éventuels enseignants sans groupe correspondant dans groupOrder
+  state.teachers.forEach(t => {
+    if (!sorted.find(s => s.id === t.id)) sorted.push(t);
+  });
+  state.teachers = sorted;
+}
+
+function addTeacher() {
+  if (guardLocked('ajouter un enseignant')) return;
+  const id = 'tn_' + Date.now();
+  const defaultGroup = state.teachers.length ? state.teachers[0].group : 'AUTRE';
+  state.teachers.push({ id, name: 'NOUVEAU', quota: 18, group: defaultGroup });
+  sortTeachersAlpha();
+  saveData();
+  renderTeachersTab();
+  renderTable();
+}
+
+function deleteTeacher(i) {
+  if (guardLocked('supprimer un enseignant')) return;
+  if (!confirm(`Supprimer ${state.teachers[i].name} ? Toutes ses heures attribuées seront perdues.`)) return;
+  const tid = state.teachers[i].id;
+  state.teachers.splice(i, 1);
+  state.rows.forEach(r => { if (r.vals) delete r.vals[tid]; });
+  saveData();
+  renderTeachersTab();
+  renderTable();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  CLASSES TAB
+// ════════════════════════════════════════════════════════════════════
+
+let selectedClass = null;
+
+function renderClassesTab() {
+  document.getElementById('titleInput').value = state.title || '';
+  document.getElementById('yearInput').value = state.year || '';
+  document.getElementById('schoolInput').value = state.school || '';
+
+  const classes = [...new Set(state.rows.map(r => r.cls))];
+  const classList = document.getElementById('classList');
+
+  classList.innerHTML = classes.length === 0
+    ? '<p style="color:var(--muted);font-size:12px;padding:8px 0">Aucune classe définie.</p>'
+    : classes.map(cls => `
+    <div class="class-item ${selectedClass === cls ? 'selected' : ''}" id="clsitem-${CSS.escape(cls)}">
+      <span class="class-item-name" onclick="selectClass('${escQ(cls)}')" title="Cliquer pour gérer les disciplines">${cls}</span>
+      <div class="class-item-actions">
+        <button class="btn" style="padding:2px 8px;font-size:11px" onclick="selectClass('${escQ(cls)}')" title="Disciplines">📚</button>
+        <button class="btn" style="padding:2px 8px;font-size:11px" onclick="renameClassPrompt('${escQ(cls)}')" title="Renommer">✏️</button>
+        <button class="btn" style="padding:2px 8px;font-size:11px;color:var(--danger);border-color:var(--danger)" onclick="deleteClass('${escQ(cls)}')" title="Supprimer">🗑</button>
+      </div>
+    </div>
+  `).join('');
+
+  if (selectedClass) selectClass(selectedClass, false);
+
+  renderClassSyntheseCheckboxes();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  SYNTHÈSE PAR CLASSE — enseignants / discipline / heures, multi-sélection
+// ════════════════════════════════════════════════════════════════════
+
+function renderClassSyntheseCheckboxes() {
+  const container = document.getElementById('classSyntheseCheckboxes');
+  if (!container) return;
+  const classes = [...new Set(state.rows.map(r => r.cls))];
+
+  if (classes.length === 0) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:12px">Aucune classe définie.</p>';
+    return;
+  }
+
+  // Conserve les cases déjà cochées lors d'un re-rendu (ex: après ajout/suppression de classe)
+  const previouslyChecked = new Set(
+    Array.from(container.querySelectorAll('input[type=checkbox]:checked')).map(el => el.value)
+  );
+
+  container.innerHTML = classes.map(cls => `
+    <label style="display:flex;align-items:center;gap:8px;padding:4px 2px;cursor:pointer;font-size:12px">
+      <input type="checkbox" value="${escQ(cls)}" class="class-synthese-cb" ${previouslyChecked.has(cls) ? 'checked' : ''}>
+      <span style="font-family:'Calibri','Carlito',sans-serif">${cls}</span>
+    </label>
+  `).join('');
+}
+
+function toggleAllClassCheckboxes(checked) {
+  document.querySelectorAll('.class-synthese-cb').forEach(cb => { cb.checked = checked; });
+}
+
+function getSelectedSyntheseClasses() {
+  return Array.from(document.querySelectorAll('.class-synthese-cb:checked')).map(cb => cb.value);
+}
+
+function buildClassSyntheseData(selectedClasses) {
+  // Pour chaque classe sélectionnée : liste des enseignants avec discipline(s) + heures
+  return selectedClasses.map(cls => {
+    const clsRows = state.rows.filter(r => r.cls === cls);
+    const teacherEntries = []; // { teacherName, disc, hours }
+    clsRows.forEach(row => {
+      state.teachers.forEach(t => {
+        const v = (row.vals || {})[t.id] || 0;
+        if (v > 0) {
+          teacherEntries.push({ teacherName: t.name, disc: row.disc || '(sans intitulé)', hours: v });
+        }
+      });
+    });
+    // Tri par nom d'enseignant puis par discipline
+    teacherEntries.sort((a, b) => a.teacherName.localeCompare(b.teacherName) || a.disc.localeCompare(b.disc));
+    const totalHeures = teacherEntries.reduce((s, e) => s + e.hours, 0);
+    return { cls, teacherEntries, totalHeures };
+  });
+}
+
+function generateClassSynthese() {
+  const selected = getSelectedSyntheseClasses();
+  const resultEl = document.getElementById('classSyntheseResult');
+
+  if (selected.length === 0) {
+    resultEl.innerHTML = '<p style="color:var(--warn);font-size:12px">⚠️ Sélectionnez au moins une classe.</p>';
+    return;
+  }
+
+  const data = buildClassSyntheseData(selected);
+
+  let html = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:12px;color:var(--muted)">${selected.length} classe${selected.length>1?'s':''} sélectionnée${selected.length>1?'s':''}</span>
+      <button class="btn" style="padding:4px 12px;font-size:11px" onclick="printClassSynthese()">🖨️ Imprimer cette synthèse</button>
+    </div>
+  `;
+
+  data.forEach(({ cls, teacherEntries, totalHeures }) => {
+    html += `
+      <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <div style="background:#e8ecf0;padding:7px 12px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;font-size:13px;color:var(--accent2)">${cls}</span>
+          <span style="font-size:12px;font-weight:700;color:var(--text);background:#fff;padding:1px 10px;border-radius:10px;border:1px solid var(--border)">${totalHeures.toFixed(2).replace(/\.?0+$/,'')}h au total</span>
+        </div>
+        <div style="padding:4px 0">
+          ${teacherEntries.length === 0
+            ? '<p style="font-size:12px;color:var(--muted);padding:8px 12px">Aucun enseignant assigné sur cette classe.</p>'
+            : `<table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead>
+                  <tr style="background:#f7fafd">
+                    <th style="text-align:left;padding:5px 12px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600">Enseignant</th>
+                    <th style="text-align:left;padding:5px 12px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600">Discipline</th>
+                    <th style="text-align:right;padding:5px 12px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600">Heures</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${teacherEntries.map(e => `
+                    <tr style="border-bottom:1px solid #f0f0f0">
+                      <td style="padding:4px 12px;color:var(--accent2);font-weight:600">${e.teacherName}</td>
+                      <td style="padding:4px 12px;color:var(--text)">${e.disc}</td>
+                      <td style="padding:4px 12px;text-align:right;color:var(--text);font-weight:600">${e.hours.toFixed(2).replace(/\.?0+$/,'')}h</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>`
+          }
+        </div>
+      </div>
+    `;
+  });
+
+  resultEl.innerHTML = html;
+  // Mémorise la dernière synthèse générée pour l'impression
+  lastClassSyntheseData = data;
+}
+
+let lastClassSyntheseData = null;
+
+function printClassSynthese() {
+  if (!lastClassSyntheseData || lastClassSyntheseData.length === 0) {
+    showToast('Générez d\'abord la synthèse avant de l\'imprimer.');
+    return;
+  }
+
+  const win = window.open('', '_blank');
+  let bodyHtml = `
+    <h1>Synthèse par classe — Enseignants</h1>
+    <div class="sub">${state.title || ''} — ${state.year || ''} ${state.school || ''} — Généré le ${new Date().toLocaleDateString('fr-FR')}</div>
+  `;
+
+  lastClassSyntheseData.forEach(({ cls, teacherEntries, totalHeures }) => {
+    bodyHtml += `
+      <h2>${cls} <span class="total">— ${totalHeures.toFixed(2).replace(/\.?0+$/,'')}h au total</span></h2>
+      ${teacherEntries.length === 0
+        ? '<p class="empty">Aucun enseignant assigné sur cette classe.</p>'
+        : `<table>
+            <thead><tr><th>Enseignant</th><th>Discipline</th><th>Heures</th></tr></thead>
+            <tbody>
+              ${teacherEntries.map(e => `<tr><td>${e.teacherName}</td><td>${e.disc}</td><td>${e.hours.toFixed(2).replace(/\.?0+$/,'')}h</td></tr>`).join('')}
+            </tbody>
+          </table>`
+      }
+    `;
+  });
+
+  win.document.write(`
+    <html><head><title>Synthèse par classe</title>
+    <style>
+      body{font-family:Calibri,Carlito,sans-serif;padding:30px;color:#222}
+      h1{font-size:18px;margin-bottom:2px}
+      h2{font-size:14px;margin-top:24px;margin-bottom:6px;color:#0f5a8a;border-bottom:2px solid #5a6470;padding-bottom:4px}
+      h2 .total{font-size:12px;font-weight:normal;color:#555}
+      .sub{color:#666;font-size:12px;margin-bottom:10px}
+      .empty{color:#888;font-size:12px;font-style:italic}
+      table{width:100%;border-collapse:collapse;margin-bottom:6px}
+      th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px;text-align:left}
+      th{background:#e8ecf0}
+      td:last-child, th:last-child { text-align:right; }
+    </style></head><body>
+    ${bodyHtml}
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 300);
+}
+
+function renameClassPrompt(cls) {
+  if (guardLocked('renommer une classe')) return;
+  modalData = { type: 'renameClass', cls };
+  document.getElementById('modalTitle').textContent = `Renommer la classe "${cls}"`;
+  document.getElementById('modalBody').innerHTML = `
+    <div class="field-row">
+      <label>Nouveau nom</label>
+      <input type="text" id="modalInput" value="${escQ(cls)}" style="flex:1;text-transform:uppercase"
+        autofocus onkeydown="if(event.key==='Enter')saveModalValue()">
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px">Toutes les disciplines et heures associées seront conservées.</p>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => { const el = document.getElementById('modalInput'); if(el){el.select();} }, 50);
+}
+
+function selectClass(cls, doRender = true) {
+  selectedClass = cls;
+  if (doRender) renderClassesTab();
+
+  document.getElementById('discPanelTitle').textContent = `— ${cls}`;
+
+  const rows = state.rows.filter(r => r.cls === cls);
+  const panel = document.getElementById('discPanel');
+  panel.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+      <input type="text" class="search-box" style="flex:1;width:auto" id="newDiscName" placeholder="Intitulé de la discipline"
+        onkeydown="if(event.key==='Enter')addDisc('${escQ(cls)}')">
+      <button class="btn primary" onclick="addDisc('${escQ(cls)}')">+ Ajouter</button>
+    </div>
+    <div style="max-height:340px;overflow-y:auto">
+      ${rows.length === 0
+        ? '<p style="color:var(--muted);font-size:12px">Aucune discipline. Ajouter ci-dessus.</p>'
+        : rows.map((r, i) => {
+            const stateIdx = state.rows.indexOf(r);
+            return `
+            <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border)">
+              <span style="color:var(--muted);font-size:10px;width:20px;text-align:right;flex-shrink:0">${i+1}</span>
+              <input type="text" value="${escQ(r.disc || '')}"
+                style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:3px 7px;font-size:11px;font-family:'Calibri','Carlito',sans-serif"
+                oninput="renameDiscQuiet(${stateIdx}, this.value)"
+                onchange="renameDisc(${stateIdx}, this.value)">
+              <div style="display:flex;gap:3px;flex-shrink:0">
+                <button class="btn" style="padding:2px 6px;font-size:11px" onclick="moveDisc(${stateIdx}, -1, '${escQ(cls)}')" title="Monter">↑</button>
+                <button class="btn" style="padding:2px 6px;font-size:11px" onclick="moveDisc(${stateIdx}, 1, '${escQ(cls)}')" title="Descendre">↓</button>
+                <button class="btn" style="padding:2px 6px;font-size:11px;color:var(--danger);border-color:var(--danger)" onclick="deleteDisc('${escQ(cls)}', ${stateIdx})" title="Supprimer">🗑</button>
+              </div>
+            </div>`;
+          }).join('')
+      }
+    </div>
+    <p style="font-size:10px;color:var(--muted);margin-top:8px">💡 Vous pouvez éditer le nom directement dans le champ, ou monter/descendre l'ordre des disciplines.</p>
+  `;
+}
+
+function addClass() {
+  if (guardLocked('ajouter une classe')) return;
+  const name = document.getElementById('newClassName').value.trim().toUpperCase();
+  if (!name) return;
+  if (state.rows.some(r => r.cls === name)) {
+    showToast(`La classe "${name}" existe déjà`); return;
+  }
+  state.rows.push({ cls: name, disc: 'Nouvelle discipline', stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{} });
+  document.getElementById('newClassName').value = '';
+  saveData();
+  renderClassesTab();
+  renderTable();
+  selectClass(name, false);
+  showToast(`Classe "${name}" ajoutée ✓`);
+}
+
+function deleteClass(cls) {
+  if (guardLocked('supprimer une classe')) return;
+  const count = state.rows.filter(r => r.cls === cls).length;
+  if (!confirm(`Supprimer la classe "${cls}" et ses ${count} discipline(s) ?\nToutes les heures attribuées seront perdues.`)) return;
+  state.rows = state.rows.filter(r => r.cls !== cls);
+  if (selectedClass === cls) { selectedClass = null; document.getElementById('discPanel').innerHTML = '<p style="color:var(--muted);font-size:12px;padding:10px 0">Sélectionner une classe à gauche.</p>'; document.getElementById('discPanelTitle').textContent=''; }
+  saveData();
+  renderClassesTab();
+  renderTable();
+  showToast(`Classe "${cls}" supprimée`);
+}
+
+function addDisc(cls) {
+  if (guardLocked('ajouter une discipline')) return;
+  const inp = document.getElementById('newDiscName');
+  const name = inp ? inp.value.trim() : '';
+  if (!name) return;
+  const clsRows = state.rows.filter(r => r.cls === cls);
+  if (clsRows.length === 0) {
+    state.rows.push({ cls, disc: name, stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{} });
+  } else {
+    const lastIdx = state.rows.lastIndexOf(clsRows[clsRows.length - 1]);
+    state.rows.splice(lastIdx + 1, 0, { cls, disc: name, stms:0, biotech:0, he:0, clent:0, g:0, nbg:0, hp:0, vals:{} });
+  }
+  saveData();
+  selectClass(cls, false);
+  renderTable();
+  showToast(`Discipline ajoutée ✓`);
+}
+
+function deleteDisc(cls, idx) {
+  if (guardLocked('supprimer une discipline')) return;
+  const disc = state.rows[idx] ? state.rows[idx].disc : '';
+  if (!confirm(`Supprimer "${disc || 'cette discipline'}" ?\nLes heures attribuées seront perdues.`)) return;
+  state.rows.splice(idx, 1);
+  saveData();
+  selectClass(cls, false);
+  renderTable();
+}
+
+function renameDiscQuiet(idx, newName) {
+  // Synchronise state immédiatement à chaque frappe (oninput),
+  // sans re-rendu destructeur qui casserait le focus du champ.
+  if (guardLocked('renommer une discipline')) return;
+  if (state.rows[idx]) {
+    state.rows[idx].disc = newName;
+    saveData();
+  }
+}
+
+function renameDisc(idx, newName) {
+  // Appelé à la perte de focus (onchange) : synchronise state + re-rendu complet.
+  if (guardLocked('renommer une discipline')) return;
+  if (state.rows[idx]) {
+    state.rows[idx].disc = newName;
+    saveData();
+    renderTable();
+  }
+}
+
+function moveDisc(idx, dir, cls) {
+  if (guardLocked('réordonner les disciplines')) return;
+  const clsRows = state.rows.filter(r => r.cls === cls);
+  const posInCls = clsRows.indexOf(state.rows[idx]);
+  if (posInCls === -1) return;
+  const targetPosInCls = posInCls + dir;
+  if (targetPosInCls < 0 || targetPosInCls >= clsRows.length) return;
+  const targetIdx = state.rows.indexOf(clsRows[targetPosInCls]);
+  // swap
+  [state.rows[idx], state.rows[targetIdx]] = [state.rows[targetIdx], state.rows[idx]];
+  saveData();
+  selectClass(cls, false);
+  renderTable();
+}
+
+function updateTitle(v) {
+  if (guardLocked('modifier le titre')) return;
+  state.title = v;
+  document.getElementById('titleDisplay').textContent = v || 'RÉPARTITION SEP';
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  SYNTHESE
+// ════════════════════════════════════════════════════════════════════
+
+let syntheseSortMode = 'group'; // 'group' | 'alpha'
+
+function setSyntheseSort(mode) {
+  syntheseSortMode = mode;
+  // Highlight active button
+  document.getElementById('sortByGroupBtn').classList.toggle('primary', mode === 'group');
+  document.getElementById('sortByAlphaBtn').classList.toggle('primary', mode === 'alpha');
+  renderSynthese();
+}
+
+function renderSynthese() {
+  const rows = state.rows;
+
+  // Build sorted teacher list
+  let sortedTeachers;
+  if (syntheseSortMode === 'alpha') {
+    // Tri purement alphabétique toutes disciplines confondues
+    sortedTeachers = [...state.teachers].sort((a, b) =>
+      a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+    );
+  } else {
+    // Tri par groupe (ordre state.groupOrder) puis alphabétique à l'intérieur de chaque groupe
+    const groups = getOrderedGroups();
+    sortedTeachers = [];
+    groups.forEach(g => {
+      const members = state.teachers
+        .filter(t => t.group === g)
+        .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+      sortedTeachers.push(...members);
+    });
+    // Enseignants sans groupe dans groupOrder en dernier
+    state.teachers.forEach(t => {
+      if (!sortedTeachers.find(s => s.id === t.id)) sortedTeachers.push(t);
+    });
+  }
+
+  const totalByTeacher = {};
+  state.teachers.forEach(t => { totalByTeacher[t.id] = 0; });
+  rows.forEach(r => {
+    state.teachers.forEach(t => {
+      totalByTeacher[t.id] += (r.vals || {})[t.id] || 0;
+    });
+  });
+
+  const totalHP = rows.reduce((s, r) => s + (r.hp || 0), 0);
+  const totalAssigned = state.teachers.reduce((s, t) => s + totalByTeacher[t.id], 0);
+  const totalQuota = state.teachers.reduce((s, t) => s + t.quota, 0);
+
+  // Sync sort button highlight
+  const gbtn = document.getElementById('sortByGroupBtn');
+  const abtn = document.getElementById('sortByAlphaBtn');
+  if (gbtn) gbtn.classList.toggle('primary', syntheseSortMode === 'group');
+  if (abtn) abtn.classList.toggle('primary', syntheseSortMode === 'alpha');
+
+  let html = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:24px;font-weight:700;color:var(--accent2);font-family:'Calibri','Carlito',sans-serif">${totalHP.toFixed(1)}h</div>
+        <div style="font-size:11px;color:var(--muted)">Total H/P global</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:24px;font-weight:700;color:var(--ok);font-family:'Calibri','Carlito',sans-serif">${totalAssigned.toFixed(1)}h</div>
+        <div style="font-size:11px;color:var(--muted)">Total attribué</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:24px;font-weight:700;color:var(--warn);font-family:'Calibri','Carlito',sans-serif">${totalQuota.toFixed(1)}h</div>
+        <div style="font-size:11px;color:var(--muted)">Total quotas enseignants</div>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:'Calibri','Carlito',sans-serif">
+      <thead>
+        <tr style="background:#e8ecf0">
+          <th style="border:1px solid var(--border);padding:6px 10px;text-align:left;cursor:pointer" onclick="setSyntheseSort('alpha')" title="Trier A→Z">Enseignant ↕</th>
+          <th style="border:1px solid var(--border);padding:6px 10px;cursor:pointer" onclick="setSyntheseSort('group')" title="Trier par groupe">Groupe ↕</th>
+          <th style="border:1px solid var(--border);padding:6px 10px">Quota</th>
+          <th style="border:1px solid var(--border);padding:6px 10px">Attribué</th>
+          <th style="border:1px solid var(--border);padding:6px 10px">Solde (HSA)</th>
+          <th style="border:1px solid var(--border);padding:6px 10px">Barre</th>
+          <th style="border:1px solid var(--border);padding:6px 10px">Détail</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  let lastGroup = null;
+  let groupQuota = 0, groupAssigned = 0;
+  let grandQuota = 0, grandAssigned = 0;
+
+  sortedTeachers.forEach((t, ti) => {
+    const assigned = totalByTeacher[t.id];
+    const hsa = assigned - t.quota;
+    const pct = t.quota > 0 ? Math.min(100, (assigned / t.quota) * 100) : 0;
+    const hsaColor = Math.abs(hsa) < 0.01 ? 'var(--ok)' : hsa > 0 ? 'var(--warn)' : 'var(--danger)';
+    const barColor = Math.abs(hsa) < 0.01 ? 'var(--ok)' : hsa > 0 ? 'var(--warn)' : 'var(--accent)';
+
+    // In group mode: group banner + subtotal when group changes
+    if (syntheseSortMode === 'group') {
+      if (t.group !== lastGroup) {
+        // Insert subtotal for previous group before starting new group
+        if (lastGroup !== null) {
+          const groupHsa = groupAssigned - groupQuota;
+          const groupHsaColor = Math.abs(groupHsa) < 0.01 ? 'var(--ok)' : groupHsa > 0 ? 'var(--warn)' : 'var(--danger)';
+          html += `<tr>
+            <td colspan="2" style="background:#fde8cc;color:#7a3b00;font-weight:700;font-size:11px;padding:4px 12px;border:1px solid #f0c080;text-align:right;font-style:italic">Sous-total ${lastGroup}</td>
+            <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${groupQuota.toFixed(1)}h</td>
+            <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${groupAssigned.toFixed(1)}h</td>
+            <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:${groupHsaColor}">${groupHsa > 0 ? '+' : ''}${groupHsa.toFixed(2)}</td>
+            <td colspan="2" style="background:#fde8cc;border:1px solid #f0c080"></td>
+          </tr>`;
+          groupQuota = 0; groupAssigned = 0;
+        }
+        lastGroup = t.group;
+        html += `<tr>
+          <td colspan="7" style="background:#fde8cc;color:#7a3b00;font-weight:700;font-size:11px;padding:4px 12px;border:1px solid #f0c080;letter-spacing:0.3px;text-transform:uppercase">${t.group}</td>
+        </tr>`;
+      }
+      groupQuota += t.quota;
+      groupAssigned += assigned;
+    }
+
+    grandQuota += t.quota;
+    grandAssigned += assigned;
+
+    html += `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="border:1px solid var(--border);padding:5px 10px;color:var(--accent2)">${t.name}</td>
+        <td style="border:1px solid var(--border);padding:5px 10px;color:var(--muted);text-align:center;font-size:11px">${t.group}</td>
+        <td style="border:1px solid var(--border);padding:5px 10px;text-align:center">${t.quota}h</td>
+        <td style="border:1px solid var(--border);padding:5px 10px;text-align:center;color:var(--text)">${assigned.toFixed(1)}h</td>
+        <td style="border:1px solid var(--border);padding:5px 10px;text-align:center;color:${hsaColor};font-weight:700">${hsa > 0 ? '+' : ''}${hsa.toFixed(2)}</td>
+        <td style="border:1px solid var(--border);padding:5px 10px;min-width:120px">
+          <div style="background:var(--surface2);border-radius:3px;height:8px;overflow:hidden">
+            <div style="background:${barColor};width:${pct}%;height:100%;border-radius:3px;transition:width 0.3s"></div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);text-align:right;margin-top:2px">${pct.toFixed(0)}%</div>
+        </td>
+        <td style="border:1px solid var(--border);padding:5px 10px;text-align:center">
+          <button class="btn" style="padding:3px 10px;font-size:11px" onclick="showTeacherDetail('${t.id}')" title="Voir le récapitulatif par classe">📋 Détail</button>
+        </td>
+      </tr>`;
+  });
+
+  // Last group subtotal
+  if (syntheseSortMode === 'group' && lastGroup !== null) {
+    const groupHsa = groupAssigned - groupQuota;
+    const groupHsaColor = Math.abs(groupHsa) < 0.01 ? 'var(--ok)' : groupHsa > 0 ? 'var(--warn)' : 'var(--danger)';
+    html += `<tr>
+      <td colspan="2" style="background:#fde8cc;color:#7a3b00;font-weight:700;font-size:11px;padding:4px 12px;border:1px solid #f0c080;text-align:right;font-style:italic">Sous-total ${lastGroup}</td>
+      <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${groupQuota.toFixed(1)}h</td>
+      <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${groupAssigned.toFixed(1)}h</td>
+      <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:${groupHsaColor}">${groupHsa > 0 ? '+' : ''}${groupHsa.toFixed(2)}</td>
+      <td colspan="2" style="background:#fde8cc;border:1px solid #f0c080"></td>
+    </tr>`;
+  }
+
+  // Grand total row
+  const grandHsa = grandAssigned - grandQuota;
+  const grandHsaColor = Math.abs(grandHsa) < 0.01 ? 'var(--ok)' : grandHsa > 0 ? 'var(--warn)' : 'var(--danger)';
+  const grandPct = grandQuota > 0 ? Math.min(100, (grandAssigned / grandQuota) * 100) : 0;
+  html += `<tr>
+    <td colspan="2" style="background:#d6e4f0;color:var(--accent2);font-weight:700;font-size:12px;padding:6px 12px;border:1px solid #b0c8e0;text-align:right">TOTAL GÉNÉRAL</td>
+    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px;text-align:center;font-weight:700;color:var(--accent2)">${grandQuota.toFixed(1)}h</td>
+    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px;text-align:center;font-weight:700;color:var(--accent2)">${grandAssigned.toFixed(1)}h</td>
+    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px;text-align:center;font-weight:700;color:${grandHsaColor}">${grandHsa > 0 ? '+' : ''}${grandHsa.toFixed(2)}</td>
+    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px">
+      <div style="background:var(--surface2);border-radius:3px;height:8px;overflow:hidden">
+        <div style="background:var(--accent);width:${grandPct}%;height:100%;border-radius:3px"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);text-align:right;margin-top:2px">${grandPct.toFixed(0)}%</div>
+    </td>
+    <td style="background:#d6e4f0;border:1px solid #b0c8e0"></td>
+  </tr>`;
+
+  html += `</tbody></table>
+  <div style="display:flex;justify-content:flex-end;margin-top:12px">
+    <button class="btn" style="padding:5px 14px;font-size:11px" onclick="printSyntheseServices()">🖨️ Imprimer ce tableau</button>
+  </div>`;
+
+  document.getElementById('syntheseContent').innerHTML = html;
+
+  // Refresh class checkboxes when the synthese tab is shown
+  renderClassSyntheseCheckboxes();
+}
+
+function printSyntheseServices() {
+  const sortedTeachers2 = syntheseSortMode === 'alpha'
+    ? [...state.teachers].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }))
+    : (() => {
+        const groups = getOrderedGroups();
+        const out = [];
+        groups.forEach(g => {
+          out.push(...state.teachers.filter(t => t.group === g)
+            .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })));
+        });
+        state.teachers.forEach(t => { if (!out.find(s => s.id === t.id)) out.push(t); });
+        return out;
+      })();
+
+  const totalByTeacher2 = {};
+  state.teachers.forEach(t => { totalByTeacher2[t.id] = 0; });
+  state.rows.forEach(r => {
+    state.teachers.forEach(t => { totalByTeacher2[t.id] += (r.vals || {})[t.id] || 0; });
+  });
+
+  let grandQ = 0, grandA = 0;
+  let lastG = null;
+  let grpQ = 0, grpA = 0;
+  let rows2 = '';
+
+  sortedTeachers2.forEach((t) => {
+    const a = totalByTeacher2[t.id];
+    const hsa = a - t.quota;
+    grandQ += t.quota; grandA += a;
+
+    if (syntheseSortMode === 'group') {
+      if (t.group !== lastG) {
+        if (lastG !== null) {
+          const sh = grpA - grpQ;
+          rows2 += `<tr class="subtotal"><td colspan="2" style="text-align:right;font-style:italic">Sous-total ${lastG}</td><td>${grpQ.toFixed(1)}h</td><td>${grpA.toFixed(1)}h</td><td>${sh>0?'+':''}${sh.toFixed(2)}h</td></tr>`;
+          grpQ = 0; grpA = 0;
+        }
+        lastG = t.group;
+        rows2 += `<tr class="group-banner"><td colspan="5">${t.group}</td></tr>`;
+      }
+      grpQ += t.quota; grpA += a;
+    }
+
+    rows2 += `<tr><td>${t.name}</td><td>${t.group}</td><td>${t.quota}h</td><td>${a.toFixed(1)}h</td><td class="${Math.abs(hsa)<0.01?'ok':hsa>0?'warn':'danger'}">${hsa>0?'+':''}${hsa.toFixed(2)}h</td></tr>`;
+  });
+
+  // Last group subtotal
+  if (syntheseSortMode === 'group' && lastG !== null) {
+    const sh = grpA - grpQ;
+    rows2 += `<tr class="subtotal"><td colspan="2" style="text-align:right;font-style:italic">Sous-total ${lastG}</td><td>${grpQ.toFixed(1)}h</td><td>${grpA.toFixed(1)}h</td><td>${sh>0?'+':''}${sh.toFixed(2)}h</td></tr>`;
+  }
+
+  const grandHsa2 = grandA - grandQ;
+  rows2 += `<tr class="grand-total"><td colspan="2">TOTAL GÉNÉRAL</td><td>${grandQ.toFixed(1)}h</td><td>${grandA.toFixed(1)}h</td><td>${grandHsa2>0?'+':''}${grandHsa2.toFixed(2)}h</td></tr>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>Synthèse des services enseignants</title>
+    <style>
+      body{font-family:Calibri,Carlito,sans-serif;padding:30px;color:#222;font-size:12px}
+      h1{font-size:16px;margin-bottom:2px;color:#0f3d6a}
+      .sub{color:#666;font-size:11px;margin-bottom:16px}
+      table{width:100%;border-collapse:collapse;margin-top:10px}
+      th,td{border:1px solid #bbb;padding:5px 9px;text-align:left}
+      th{background:#e8ecf0;font-weight:700}
+      td:nth-child(3),td:nth-child(4),td:nth-child(5){text-align:center}
+      .group-banner td{background:#fde8cc;color:#7a3b00;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;font-size:11px}
+      .subtotal td{background:#fde8cc;color:#7a3b00;font-weight:700;font-style:italic}
+      .grand-total td{background:#d6e4f0;color:#0f3d6a;font-weight:700;font-size:13px}
+      .ok{color:#1a7a4a;font-weight:700}
+      .warn{color:#b45309;font-weight:700}
+      .danger{color:#c0392b;font-weight:700}
+      @media print{body{padding:10px}}
+    </style></head><body>
+    <h1>Synthèse des services enseignants</h1>
+    <div class="sub">${state.title || ''} — ${state.year || ''} ${state.school || ''} — Généré le ${new Date().toLocaleDateString('fr-FR')} — Tri : ${syntheseSortMode === 'alpha' ? 'Alphabétique' : 'Par groupe'}</div>
+    <table>
+      <thead><tr><th>Enseignant</th><th>Groupe</th><th>Quota</th><th>Attribué</th><th>Solde (HSA)</th></tr></thead>
+      <tbody>${rows2}</tbody>
+    </table>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 300);
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  TEACHER DETAIL POPUP (récapitulatif des heures par classe)
+// ════════════════════════════════════════════════════════════════════
+
+function showTeacherDetail(tid) {
+  const t = state.teachers.find(x => x.id === tid);
+  if (!t) return;
+
+  // Build per-class breakdown
+  const byClass = {}; // cls -> { total, items: [{disc, hours}] }
+  state.rows.forEach(r => {
+    const v = (r.vals || {})[tid] || 0;
+    if (v > 0) {
+      if (!byClass[r.cls]) byClass[r.cls] = { total: 0, items: [] };
+      byClass[r.cls].total += v;
+      byClass[r.cls].items.push({ disc: r.disc || '(sans intitulé)', hours: v });
+    }
+  });
+
+  const classNames = Object.keys(byClass).sort();
+  const grandTotal = classNames.reduce((s, c) => s + byClass[c].total, 0);
+  const hsa = grandTotal - t.quota;
+  const hsaColor = Math.abs(hsa) < 0.01 ? 'var(--ok)' : hsa > 0 ? 'var(--warn)' : 'var(--danger)';
+
+  let bodyHtml = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:700;color:var(--accent2)">${t.name}</div>
+        <div style="font-size:11px;color:var(--muted)">${t.group}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">Quota</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text)">${t.quota}h</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">Attribué</div>
+        <div style="font-size:14px;font-weight:700;color:var(--accent2)">${grandTotal.toFixed(2).replace(/\\.?0+$/,'') || 0}h</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--muted)">HSA</div>
+        <div style="font-size:14px;font-weight:700;color:${hsaColor}">${hsa>0?'+':''}${hsa.toFixed(2).replace(/\\.?0+$/,'') || 0}h</div>
+      </div>
+    </div>
+  `;
+
+  if (classNames.length === 0) {
+    bodyHtml += `<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">Aucune heure attribuée pour cet enseignant.</p>`;
+  } else {
+    bodyHtml += `<div style="max-height:380px;overflow-y:auto">`;
+    classNames.forEach(cls => {
+      const data = byClass[cls];
+      bodyHtml += `
+        <div style="margin-bottom:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="background:#e8ecf0;padding:6px 12px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700;font-size:12.5px;color:var(--accent2)">${cls}</span>
+            <span style="font-size:12px;font-weight:700;color:var(--text);background:#fff;padding:1px 9px;border-radius:10px;border:1px solid var(--border)">${data.total.toFixed(2).replace(/\\.?0+$/,'')}h</span>
+          </div>
+          <div style="padding:4px 12px 6px">
+            ${data.items.map(it => `
+              <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
+                <span style="color:var(--text)">${it.disc}</span>
+                <span style="color:var(--accent2);font-weight:600;flex-shrink:0;margin-left:10px">${it.hours.toFixed(2).replace(/\\.?0+$/,'')}h</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    });
+    bodyHtml += `</div>`;
+  }
+
+  bodyHtml += `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:10px;border-top:1px solid var(--border)">
+      <span style="font-size:11px;color:var(--muted)">${classNames.length} classe${classNames.length>1?'s':''}</span>
+      <button class="btn" style="padding:5px 12px;font-size:11px" onclick="printTeacherDetail('${tid}')">🖨️ Imprimer ce récapitulatif</button>
+    </div>
+  `;
+
+  document.getElementById('modalTitle').textContent = `Récapitulatif des heures`;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+
+  // Widen the modal for this content and hide default footer buttons (replaced by close only)
+  const modalEl = document.querySelector('#modalOverlay .modal');
+  modalEl.style.maxWidth = '560px';
+  document.getElementById('modalFooter').style.display = 'none';
+
+  modalData = { type: 'teacherDetail', tid };
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function printTeacherDetail(tid) {
+  const t = state.teachers.find(x => x.id === tid);
+  if (!t) return;
+  const byClass = {};
+  state.rows.forEach(r => {
+    const v = (r.vals || {})[tid] || 0;
+    if (v > 0) {
+      if (!byClass[r.cls]) byClass[r.cls] = { total: 0, items: [] };
+      byClass[r.cls].total += v;
+      byClass[r.cls].items.push({ disc: r.disc || '(sans intitulé)', hours: v });
+    }
+  });
+  const classNames = Object.keys(byClass).sort();
+  const grandTotal = classNames.reduce((s, c) => s + byClass[c].total, 0);
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>Récapitulatif – ${t.name}</title>
+    <style>
+      body{font-family:Calibri,Carlito,sans-serif;padding:30px;color:#222}
+      h1{font-size:18px;margin-bottom:2px}
+      .sub{color:#666;font-size:12px;margin-bottom:18px}
+      table{width:100%;border-collapse:collapse;margin-bottom:14px}
+      th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px;text-align:left}
+      th{background:#e8ecf0}
+      .cls-row{background:#f5f5f5;font-weight:bold}
+      .total{font-weight:bold;text-align:right;margin-top:10px;font-size:13px}
+    </style></head><body>
+    <h1>${t.name}</h1>
+    <div class="sub">${t.group} — Quota: ${t.quota}h — Année: ${state.year || ''} ${state.school || ''}</div>
+    <table><thead><tr><th>Classe</th><th>Discipline</th><th>Heures</th></tr></thead><tbody>
+    ${classNames.map(cls => `
+      <tr class="cls-row"><td colspan="2">${cls}</td><td>${byClass[cls].total.toFixed(2).replace(/\\.?0+$/,'')}h</td></tr>
+      ${byClass[cls].items.map(it => `<tr><td></td><td>${it.disc}</td><td>${it.hours.toFixed(2).replace(/\\.?0+$/,'')}h</td></tr>`).join('')}
+    `).join('')}
+    </tbody></table>
+    <div class="total">Total attribué : ${grandTotal.toFixed(2).replace(/\\.?0+$/,'')}h</div>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 300);
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  STATS
+// ════════════════════════════════════════════════════════════════════
+
+function updateStats() {
+  document.getElementById('statTeachers').textContent = state.teachers.length;
+  document.getElementById('statClasses').textContent = new Set(state.rows.map(r => r.cls)).size;
+  document.getElementById('statRows').textContent = state.rows.length;
+  const total = state.rows.reduce((s, r) => s + (r.hp || 0), 0);
+  document.getElementById('statTotal').textContent = total.toFixed(1);
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  EXPORT PDF A3
+// ════════════════════════════════════════════════════════════════════
+
+async function exportPDF() {
+  showToast('Génération PDF A3 en cours...');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+
+  const teachers = state.teachers;
+  const rows = state.rows;
+  const pageW = 420;
+  const pageH = 297;
+  const margin = 8;
+
+  // ── Palette alignée sur le tableau HTML ──
+  const COL = {
+    greyHeader:   [232, 236, 240],   // #e8ecf0 — DIVISIONS / DISCIPLINE / CTRL / horaires fixes
+    greyHeaderTxt:[44, 62, 80],      // #2c3e50
+    orangeHeader: [253, 232, 204],   // #fde8cc — bandeaux groupes
+    orangeHeaderTxt: [122, 59, 0],   // #7a3b00
+    blueHeader:   [208, 232, 248],   // #d0e8f8 — noms enseignants
+    blueHeaderTxt:[15, 61, 106],     // #0f3d6a
+    blueQuota:    [232, 244, 253],   // #e8f4fd — quotas
+    blueQuotaTxt: [26, 74, 112],     // #1a4a70
+    rowWhite:     [255, 255, 255],
+    rowAlt:       [247, 250, 253],   // #f7fafd
+    colClassBg:   [255, 255, 255],
+    colClassTxt:  [15, 90, 138],     // var(--accent2)
+    colDiscTxt:   [30, 45, 61],      // var(--text)
+    hpBg:         [238, 245, 251],   // #eef5fb
+    hpTxt:        [15, 90, 138],
+    ctrlNeutralBg:[220, 232, 245],   // #dce8f5
+    ctrlNeutralTxt:[15, 90, 138],
+    ctrlOkBg:     [212, 240, 224],   // #d4f0e0
+    ctrlOkTxt:    [26, 122, 74],     // var(--ok)
+    ctrlBadBg:    [253, 232, 230],   // #fde8e6
+    ctrlBadTxt:   [192, 57, 43],     // var(--danger)
+    teacherValBg: [221, 234, 252],   // léger bleu pour valeur enseignant
+    teacherValTxt:[13, 110, 253],    // #0d6efd
+    totalBg:      [214, 228, 240],   // #d6e4f0
+    totalTxt:     [15, 90, 138],
+    hsaOkBg:      [234, 247, 240],   // #eaf7f0
+    hsaOkTxt:     [26, 122, 74],
+    hsaWarnBg:    [254, 246, 232],   // #fef6e8
+    hsaWarnTxt:   [180, 83, 9],      // var(--warn)
+    hsaDangerBg:  [253, 232, 230],
+    hsaDangerTxt: [192, 57, 43],
+    borderLight:  [192, 202, 212],   // #c0cad4
+    borderStrong: [90, 100, 112],    // tracé renforcé colonnes fixes
+  };
+
+  // ── Title ──
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 90, 138);
+  doc.text(state.title || 'RÉPARTITION SEP', margin, margin + 7);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(107, 127, 147);
+  doc.text((state.year || '') + (state.school ? '  –  ' + state.school : ''), margin, margin + 13);
+  doc.text('Généré le ' + new Date().toLocaleDateString('fr-FR'), pageW - margin - 48, margin + 13);
+
+  // ── Column layout: [DIV][DISC][CTRL][STMS][BIO][H/E][Cl][G][NB/G][H/P][teachers…] ──
+  const fixedCols   = ['DIVISIONS','DISCIPLINE','CTRL','STMS','BIO','H/E','Cl.E.','G','NB/G','H/P'];
+  const fixedWidths = [16, 58, 10, 10, 10, 9, 10, 7, 9, 10];
+  const FIXED_COUNT = fixedCols.length; // 10 — limite du tracé renforcé ("jusqu'au bloc EPS" = fin des colonnes horaires fixes)
+  const totalFixed = fixedWidths.reduce((a,b)=>a+b,0);
+  const availW = pageW - 2*margin - totalFixed;
+  const tColW = Math.max(8, Math.min(12, availW / teachers.length));
+
+  const allWidths = [...fixedWidths, ...Array(teachers.length).fill(tColW)];
+  const tableW = allWidths.reduce((a,b)=>a+b,0);
+
+  // x de départ de chaque colonne fixe, pour tracer les bordures verticales renforcées
+  const fixedColX = [];
+  { let xx = margin; fixedWidths.forEach(w => { fixedColX.push(xx); xx += w; }); fixedColX.push(xx); }
+
+  let y = margin + 17;
+  const rowH = 4.8;
+  const nameH = 28; // hauteur de la zone des noms enseignants verticaux
+
+  const headerTop = y; // mémorise le haut du tableau pour les bordures renforcées de la 1ère page
+  let currentPageTop = headerTop; // suit le haut du tableau sur la page courante (change après chaque saut de page)
+
+  // ── Dessine les bordures verticales renforcées des colonnes fixes sur une plage [yTop, yBottom] ──
+  function drawStrongFixedBorders(yTop, yBottom) {
+    doc.setDrawColor(...COL.borderStrong);
+    doc.setLineWidth(0.35);
+    for (let i = 0; i <= FIXED_COUNT; i++) {
+      doc.line(fixedColX[i], yTop, fixedColX[i], yBottom);
+    }
+    // Trait horizontal renforcé sous le bloc fixe complet (haut et bas)
+    doc.line(margin, yTop, margin + totalFixed, yTop);
+    doc.line(margin, yBottom, margin + totalFixed, yBottom);
+  }
+
+  // ── Dessine le contour renforcé du bloc d'en-tête enseignants
+  //    (bandeau groupe + noms verticaux + quotas), avec séparateurs
+  //    renforcés entre chaque groupe de disciplines (P7300, BSE 7200…) ──
+  function drawStrongTeacherHeaderBorders(yTop, yBottom) {
+    doc.setDrawColor(...COL.borderStrong);
+    doc.setLineWidth(0.35);
+    // Contour extérieur du bloc enseignants
+    doc.rect(margin + totalFixed, yTop, tableW - totalFixed, yBottom - yTop);
+    // Séparateurs verticaux renforcés entre chaque groupe
+    const groups = [...new Set(teachers.map(t => t.group))];
+    let gx = margin + totalFixed;
+    groups.forEach(g => {
+      const cnt = teachers.filter(t => t.group === g).length;
+      doc.line(gx, yTop, gx, yBottom);
+      gx += cnt * tColW;
+    });
+    doc.line(gx, yTop, gx, yBottom); // bord droit final
+  }
+
+  // ── Draw header ──
+  const drawHeader = () => {
+    const blockTop = y;
+
+    // Row 1 : DIVISIONS / DISCIPLINE / CTRL / horaires fixes — gris clair
+    doc.setFillColor(...COL.greyHeader);
+    doc.rect(margin, y, totalFixed, 7, 'F');
+    // Bandeaux groupes — orange clair
+    doc.setFillColor(...COL.orangeHeader);
+    doc.rect(margin + totalFixed, y, tableW - totalFixed, 7, 'F');
+
+    doc.setFontSize(6.5); doc.setFont('helvetica','bold');
+    let x = margin;
+    doc.setTextColor(...COL.greyHeaderTxt);
+    fixedCols.forEach((col,ci) => {
+      doc.text(col, x + fixedWidths[ci]/2, y+4.5, {align:'center'});
+      x += fixedWidths[ci];
+    });
+    // Group banners
+    const groups = [...new Set(teachers.map(t=>t.group))];
+    doc.setFontSize(5.5);
+    doc.setTextColor(...COL.orangeHeaderTxt);
+    groups.forEach(g => {
+      const cnt = teachers.filter(t=>t.group===g).length;
+      const gW = cnt * tColW;
+      doc.text(g.substring(0,14), x + gW/2, y+4.5, {align:'center', maxWidth: gW-1});
+      x += gW;
+    });
+    y += 7;
+
+    // Row 2 : noms enseignants verticaux — bleu clair / bloc fixe reste gris
+    doc.setFillColor(...COL.greyHeader);
+    doc.rect(margin, y, totalFixed, nameH, 'F');
+    doc.setFillColor(...COL.blueHeader);
+    doc.rect(margin + totalFixed, y, tableW - totalFixed, nameH, 'F');
+
+    doc.setFontSize(5.5); doc.setFont('helvetica','normal');
+    doc.setTextColor(...COL.blueHeaderTxt);
+    x = margin + totalFixed;
+    teachers.forEach((t) => {
+      const cx = x + tColW/2;
+      doc.saveGraphicsState();
+      const maxChars = Math.floor(nameH / 2);
+      const label = t.name.length > maxChars ? t.name.substring(0, maxChars) : t.name;
+      doc.text(label, cx, y + nameH - 2, { angle: 90, align: 'left' });
+      doc.restoreGraphicsState();
+      x += tColW;
+    });
+    y += nameH;
+
+    // Row 3 : quotas — bleu très clair / bloc fixe reste gris
+    doc.setFillColor(...COL.greyHeader);
+    doc.rect(margin, y, totalFixed, rowH, 'F');
+    doc.setFillColor(...COL.blueQuota);
+    doc.rect(margin + totalFixed, y, tableW - totalFixed, rowH, 'F');
+    doc.setFontSize(5.5); doc.setFont('helvetica','bold');
+    doc.setTextColor(...COL.blueQuotaTxt);
+    x = margin + totalFixed;
+    teachers.forEach((t) => {
+      doc.text(String(t.quota), x + tColW/2, y + 3.2, {align:'center'});
+      x += tColW;
+    });
+
+    // Grille fine standard sur tout l'en-tête
+    doc.setDrawColor(...COL.borderLight); doc.setLineWidth(0.12);
+    doc.rect(margin, blockTop, tableW, (y + rowH) - blockTop);
+    // séparateurs horizontaux entre les 3 lignes d'en-tête
+    doc.line(margin, blockTop+7, margin+tableW, blockTop+7);
+    doc.line(margin, blockTop+7+nameH, margin+tableW, blockTop+7+nameH);
+
+    // Bordures renforcées des colonnes fixes sur toute la hauteur de l'en-tête
+    drawStrongFixedBorders(blockTop, y + rowH);
+    // Bordures renforcées du bloc enseignants (groupes + noms + quotas)
+    drawStrongTeacherHeaderBorders(blockTop, y + rowH);
+    // Bordure inférieure renforcée sur toute la largeur du bloc d'en-tête
+    doc.setDrawColor(...COL.borderStrong); doc.setLineWidth(0.35);
+    doc.line(margin, y + rowH, margin + tableW, y + rowH);
+
+    doc.setDrawColor(...COL.borderLight); doc.setLineWidth(0.12);
+    doc.line(margin, y + rowH, margin + tableW, y + rowH);
+    y += rowH;
+  };
+
+  drawHeader();
+  let bodyTop = y;
+
+  // ── Pré-calcul des divisions (groupes de lignes consécutives par classe) ──
+  // Permet 1) de ne jamais couper une division entre deux pages,
+  // 2) de fusionner visuellement la cellule DIVISIONS sur toute la hauteur du bloc.
+  const divisions = [];
+  rows.forEach((row, ri) => {
+    if (divisions.length === 0 || divisions[divisions.length - 1].cls !== row.cls) {
+      divisions.push({ cls: row.cls, rows: [row], startIdx: ri });
+    } else {
+      divisions[divisions.length - 1].rows.push(row);
+    }
+  });
+
+  // ── Data rows, division par division ──
+  let globalRi = 0;
+  divisions.forEach((division) => {
+    const divisionH = division.rows.length * rowH;
+
+    // Si la division ne tient pas entièrement sur la page courante, sauter de page
+    // (sauf si elle est plus grande qu'une page entière — dans ce cas elle sera
+    // simplement coupée faute d'alternative).
+    const availableOnPage = pageH - margin - 12 - y;
+    const fitsOnFreshPage = divisionH <= (pageH - margin - 12 - (margin + 4));
+    if (divisionH > availableOnPage && fitsOnFreshPage && y > bodyTop) {
+      // Bordures renforcées du bloc précédent avant saut de page
+      drawStrongFixedBorders(bodyTop, y);
+      doc.setDrawColor(...COL.borderStrong); doc.setLineWidth(0.6);
+      doc.line(margin + tableW, currentPageTop, margin + tableW, y); // bord droit de la page qui se termine
+      doc.addPage();
+      y = margin + 4;
+      currentPageTop = y;
+      drawHeader();
+      bodyTop = y;
+    }
+
+    const divisionTop = y;
+
+    // Bordure renforcée marquant le début de la division (sauf la toute première)
+    if (globalRi > 0) {
+      doc.setDrawColor(...COL.borderStrong);
+      doc.setLineWidth(0.35);
+      doc.line(margin, y, margin + tableW, y);
+    }
+
+    division.rows.forEach((row) => {
+      // Si malgré tout la ligne dépasse la page (division plus grande qu'une page), saut de page ligne par ligne
+      if (y > pageH - margin - 12) {
+        drawStrongFixedBorders(divisionTop, y);
+        doc.setDrawColor(...COL.borderStrong); doc.setLineWidth(0.6);
+        doc.line(margin + tableW, currentPageTop, margin + tableW, y);
+        doc.addPage();
+        y = margin + 4;
+        currentPageTop = y;
+        drawHeader();
+        bodyTop = y;
+      }
+
+      // Fond de ligne (alternance) — appliqué à toute la largeur
+      doc.setFillColor(...(globalRi % 2 === 0 ? COL.rowAlt : COL.rowWhite));
+      doc.rect(margin, y, tableW, rowH, 'F');
+
+      let x = margin + fixedWidths[0]; // saute la colonne DIVISIONS (texte écrit une seule fois plus bas)
+
+      // DISCIPLINE
+      doc.setFontSize(6); doc.setFont('helvetica','normal'); doc.setTextColor(...COL.colDiscTxt);
+      doc.text((row.disc||'').substring(0,38), x+1, y+3.3);
+      x += fixedWidths[1];
+
+      // CTRL
+      const assignedSum = teachers.reduce((s,t)=>s+((row.vals||{})[t.id]||0),0);
+      const hp = row.hp||0;
+      if (assignedSum > 0) {
+        const ok = Math.abs(assignedSum-hp)<0.01;
+        const bad = assignedSum !== 0 && !ok;
+        doc.setFillColor(...(ok ? COL.ctrlOkBg : bad ? COL.ctrlBadBg : COL.ctrlNeutralBg));
+        doc.rect(x, y, fixedWidths[2], rowH, 'F');
+        doc.setFont('helvetica','bold');
+        doc.setTextColor(...(ok ? COL.ctrlOkTxt : bad ? COL.ctrlBadTxt : COL.ctrlNeutralTxt));
+        const ctrlLabel = Number.isInteger(assignedSum)?String(assignedSum):assignedSum.toFixed(1);
+        doc.text(ctrlLabel, x+fixedWidths[2]/2, y+3.3, {align:'center'});
+      }
+      x += fixedWidths[2];
+
+      // Horaires STMS BIO H/E Cl G NB/G H/P
+      ['stms','biotech','he','clent','g','nbg','hp'].forEach((k,ki) => {
+        const v = row[k]||0;
+        if (v) {
+          if (k === 'hp') {
+            doc.setFillColor(...COL.hpBg);
+            doc.rect(x, y, fixedWidths[3+ki], rowH, 'F');
+            doc.setFont('helvetica','bold'); doc.setTextColor(...COL.hpTxt);
+          } else {
+            doc.setFont('helvetica','normal'); doc.setTextColor(...COL.colDiscTxt);
+          }
+          doc.text(String(v), x+fixedWidths[3+ki]/2, y+3.3, {align:'center'});
+        }
+        x += fixedWidths[3+ki];
+      });
+
+      // Teacher cells
+      teachers.forEach((t) => {
+        const v = (row.vals||{})[t.id]||0;
+        if (v > 0) {
+          doc.setFillColor(...COL.teacherValBg);
+          doc.rect(x, y, tColW, rowH, 'F');
+          doc.setFont('helvetica','bold'); doc.setTextColor(...COL.teacherValTxt);
+          const vLabel = Number.isInteger(v)?String(v):v.toFixed(1);
+          doc.text(vLabel, x+tColW/2, y+3.3, {align:'center'});
+        }
+        x += tColW;
+      });
+
+      // Trait horizontal fin standard sous la ligne
+      doc.setDrawColor(...COL.borderLight); doc.setLineWidth(0.1);
+      doc.line(margin, y+rowH, margin+tableW, y+rowH);
+      y += rowH;
+      globalRi++;
+    });
+
+    // ── Cellule DIVISIONS fusionnée : un seul fond + un seul texte centré verticalement ──
+    const divisionBottom = y;
+    doc.setFillColor(...COL.colClassBg);
+    doc.rect(margin, divisionTop, fixedWidths[0], divisionBottom - divisionTop, 'F');
+    doc.setFontSize(6); doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...COL.colClassTxt);
+    const divCenterY = divisionTop + (divisionBottom - divisionTop) / 2 + 1;
+    doc.text(division.cls, margin + 1, divCenterY);
+    // Séparation entre la colonne DIVISIONS et le reste, sur toute la hauteur de la division
+    doc.setDrawColor(...COL.borderStrong); doc.setLineWidth(0.35);
+    doc.line(margin + fixedWidths[0], divisionTop, margin + fixedWidths[0], divisionBottom);
+  });
+
+  // Bordures renforcées du dernier bloc de données
+  drawStrongFixedBorders(bodyTop, y);
+  // Ferme la première et la dernière division sur toute la largeur du tableau
+  doc.setDrawColor(...COL.borderStrong); doc.setLineWidth(0.35);
+  doc.line(margin, bodyTop, margin + tableW, bodyTop);
+  doc.line(margin, y, margin + tableW, y);
+
+  // ── TOTAL row ──
+  if (y > pageH-margin-10) { doc.addPage(); y=margin+4; }
+  const totalRowTop = y;
+  doc.setFillColor(...COL.totalBg);
+  doc.rect(margin, y, tableW, rowH+1, 'F');
+  doc.setFontSize(6); doc.setFont('helvetica','bold'); doc.setTextColor(...COL.totalTxt);
+  let x = margin;
+  doc.text('TOTAL', x+1, y+3.6); x+=fixedWidths[0];
+  doc.text('Heures attribuées', x+1, y+3.6); x+=fixedWidths[1];
+  const gTotal = rows.reduce((s,r)=>s+teachers.reduce((ss,t)=>ss+((r.vals||{})[t.id]||0),0),0);
+  doc.text(gTotal>0?String(gTotal.toFixed(1).replace('.0','')):'', x+fixedWidths[2]/2, y+3.6, {align:'center'}); x+=fixedWidths[2];
+  ['stms','biotech','he','clent','g','nbg','hp'].forEach((k,ki)=>{
+    const s=rows.reduce((ss,r)=>ss+(r[k]||0),0);
+    if(s) doc.text(String(s), x+fixedWidths[3+ki]/2, y+3.6, {align:'center'});
+    x+=fixedWidths[3+ki];
+  });
+  doc.setTextColor(...COL.teacherValTxt);
+  teachers.forEach((t)=>{
+    const s=rows.reduce((ss,r)=>ss+((r.vals||{})[t.id]||0),0);
+    if(s) doc.text(String(s.toFixed(1).replace('.0','')), x+tColW/2, y+3.6, {align:'center'});
+    x+=tColW;
+  });
+  y += rowH+1;
+
+  // ── HSA row ──
+  const hsaRowTop = y;
+  doc.setFillColor(244, 247, 250);
+  doc.rect(margin, y, tableW, rowH+1, 'F');
+  doc.setFontSize(5.8); doc.setFont('helvetica','bold');
+  x = margin;
+  doc.setTextColor(...COL.totalTxt); doc.text('HSA', x+1, y+3.5); x+=fixedWidths[0];
+  doc.setFont('helvetica','normal'); doc.setTextColor(107,127,147);
+  doc.text('Solde attribué – quota', x+1, y+3.5); x+=fixedWidths[1]+fixedWidths[2];
+  ['stms','biotech','he','clent','g','nbg','hp'].forEach((k,ki)=>{ x+=fixedWidths[3+ki]; });
+  teachers.forEach((t)=>{
+    const assigned=rows.reduce((ss,r)=>ss+((r.vals||{})[t.id]||0),0);
+    const hsa=assigned-t.quota;
+    const ok=Math.abs(hsa)<0.01;
+    doc.setFillColor(...(ok ? COL.hsaOkBg : hsa>0 ? COL.hsaWarnBg : COL.hsaDangerBg));
+    doc.rect(x, y, tColW, rowH+1, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setTextColor(...(ok ? COL.hsaOkTxt : hsa>0 ? COL.hsaWarnTxt : COL.hsaDangerTxt));
+    const label=(hsa>0?'+':'')+hsa.toFixed(1).replace('.0','');
+    doc.text(label, x+tColW/2, y+3.5, {align:'center'});
+    x+=tColW;
+  });
+  y += rowH + 1;
+
+  // Bordures renforcées des colonnes fixes sur les lignes TOTAL + HSA
+  drawStrongFixedBorders(totalRowTop, y);
+
+  // Trait fin sous TOTAL/HSA
+  doc.setDrawColor(...COL.borderLight); doc.setLineWidth(0.1);
+  doc.line(margin, totalRowTop, margin+tableW, totalRowTop);
+  doc.line(margin, hsaRowTop, margin+tableW, hsaRowTop);
+
+  // Bordure extérieure générale (haut/gauche/droite/bas) — page courante
+  doc.setDrawColor(...COL.borderStrong); doc.setLineWidth(0.4);
+  doc.rect(margin, currentPageTop, tableW, y - currentPageTop);
+  // Renfort supplémentaire sur les bords droit et bas (plus prononcés)
+  doc.setLineWidth(0.6);
+  doc.line(margin + tableW, currentPageTop, margin + tableW, y); // bord droit
+  doc.line(margin, y, margin + tableW, y);                       // bord bas
+
+  doc.save(`repartition_sep_A3_${new Date().toISOString().slice(0,10)}.pdf`);
+  showToast('PDF A3 généré ✓');
+}
+
+
+// ════════════════════════════════════════════════════════════════════
+//  SYSTÈME DE CONNEXION — mot de passe haché SHA-256
+//  Le mot de passe par défaut est : sep2024
+//  (le hash ci-dessous correspond à "sep2024")
+// ════════════════════════════════════════════════════════════════════
+
+const LOGIN_HASH_KEY   = 'sep_login_hash_v1';
+const LOGIN_SESSION_KEY = 'sep_logged_in_v1';
+
+// Mot de passe par défaut "sep2024" — haché SHA-256
+// Pour changer : utiliser le bouton "Changer le mot de passe d'accès" dans l'app
+const DEFAULT_LOGIN_HASH = 'ad004c7d8755ed32d8ab230543de536650bde2de55e39f2543156967aa319c4d';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function getLoginHash() {
+  return localStorage.getItem(LOGIN_HASH_KEY) || DEFAULT_LOGIN_HASH;
+}
+
+function isLoggedIn() {
+  return sessionStorage.getItem(LOGIN_SESSION_KEY) === 'true'
+      || localStorage.getItem(LOGIN_SESSION_KEY) === 'true';
+}
+
+async function doLogin() {
+  const pwd = document.getElementById('loginPwd').value;
+  const remember = document.getElementById('loginRemember').checked;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  if (!pwd) {
+    errEl.textContent = 'Veuillez saisir le mot de passe.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.textContent = 'Vérification…'; btn.disabled = true;
+
+  const hash = await sha256(pwd);
+  if (hash === getLoginHash()) {
+    // Succès
+    if (remember) localStorage.setItem(LOGIN_SESSION_KEY, 'true');
+    else sessionStorage.setItem(LOGIN_SESSION_KEY, 'true');
+    showAppWithGitHub(); // charge GitHub + verrouille automatiquement
+  } else {
+    errEl.textContent = '❌ Mot de passe incorrect.';
+    errEl.style.display = 'block';
+    document.getElementById('loginPwd').value = '';
+    document.getElementById('loginPwd').focus();
+    btn.textContent = 'Accéder à l\'application'; btn.disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  CONFIGURATION GITHUB — chargement automatique du data.json
+//  ⚠️  Remplacer GITHUB_REPO par le vrai nom de votre dépôt GitHub
+//  Ex: si votre page est https://waddfpt.github.io/mon-depot/
+//      → GITHUB_REPO = 'mon-depot'
+// ════════════════════════════════════════════════════════════════════
+const GITHUB_USER  = 'waddfpt';
+const GITHUB_REPO  = 'Rpartition-SEP'; // ← REMPLACER par le vrai nom du dépôt
+const GITHUB_FILE  = '_r_partition_sep_2026-06-25.json'; // nom fixe du fichier JSON dans le dépôt
+const GITHUB_URL   = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/${GITHUB_FILE}`;
+
+async function fetchGitHubData() {
+  try {
+    const res = await fetch(GITHUB_URL + '?t=' + Date.now()); // cache-bust
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const loaded = await res.json();
+    if (!loaded.teachers || !loaded.rows) throw new Error('Structure invalide');
+    return loaded;
+  } catch(e) {
+    console.warn('Chargement GitHub échoué :', e.message);
+    return null;
+  }
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  loadData();            // charge localStorage ou DEFAULT_DATA en attendant
+  renderTable();
+  updateSaveStatusBadge();
+  document.getElementById('titleDisplay').textContent = state.title || 'RÉPARTITION SEP';
+}
+
+async function showAppWithGitHub() {
+  // 1) Affiche l'app immédiatement avec les données locales (responsive)
+  showApp();
+
+  // 2) Tente de charger le data.json depuis GitHub en arrière-plan
+  const loginBadge = document.getElementById('githubStatus');
+  if (loginBadge) loginBadge.textContent = '⟳ Chargement des données…';
+
+  const githubData = await fetchGitHubData();
+
+  if (githubData) {
+    // Données GitHub chargées → remplace l'état et verrouille
+    state = githubData;
+    hasUnsavedChanges = false;
+
+    // Restaure le mot de passe si présent dans le JSON
+    if (state._lockPassword) {
+      try { localStorage.setItem(LOCK_PASSWORD_KEY, state._lockPassword); } catch(e) {}
+    }
+
+    // Met à jour le localStorage avec les données fraîches
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+
+    // Réinitialise les filtres puis re-rend
+    currentFilter = '';
+    currentClassFilter = '';
+    selectedClass = null;
+    const sb = document.getElementById('tableSearchBox');
+    if (sb) sb.value = '';
+
+    renderTable();
+    renderTeachersTab();
+    updateSaveStatusBadge();
+    document.getElementById('titleDisplay').textContent = state.title || 'RÉPARTITION SEP';
+
+    // Verrouille automatiquement
+    applyLockState(true);
+    if (loginBadge) loginBadge.textContent = '✓ Données synchronisées et verrouillées';
+    showToast('✓ Données chargées depuis GitHub — fichier verrouillé');
+  } else {
+    if (loginBadge) loginBadge.textContent = '⚠️ GitHub inaccessible — données locales';
+    showToast('⚠️ GitHub inaccessible — données locales utilisées');
+  }
+}
+
+function changeLoginPassword() {
+  // Gardée synchrone pour compatibilité, réécrite sans async
+  const current = prompt('Mot de passe actuel :');
+  if (current === null) return;
+  sha256(current).then(currentHash => {
+    if (currentHash !== getLoginHash()) {
+      showToast('❌ Mot de passe actuel incorrect.');
+      return;
+    }
+    const newPwd = prompt('Nouveau mot de passe d\'accès (min. 4 caractères) :');
+    if (!newPwd || newPwd.trim().length < 4) {
+      showToast('Mot de passe trop court — annulé.'); return;
+    }
+    const confirm2 = prompt('Confirmer le nouveau mot de passe :');
+    if (newPwd !== confirm2) {
+      showToast('Les mots de passe ne correspondent pas — annulé.'); return;
+    }
+    sha256(newPwd).then(newHash => {
+      localStorage.setItem(LOGIN_HASH_KEY, newHash);
+      showToast('✓ Mot de passe d\'accès modifié avec succès !');
+    });
+  });
+}
+
+function logout() {
+  if (!confirm('Se déconnecter ? Pensez à sauvegarder vos données avant.')) return;
+  sessionStorage.removeItem(LOGIN_SESSION_KEY);
+  localStorage.removeItem(LOGIN_SESSION_KEY);
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginPwd').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════════
+
+window.addEventListener('beforeunload', (e) => {
+  if (hasUnsavedChanges) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+});
+
+setInterval(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }, 120000);
+
+// Démarrage : login ou chargement GitHub automatique
+if (isLoggedIn()) {
+  showAppWithGitHub(); // déjà connecté → charge GitHub + verrouille
+} else {
+  document.getElementById('loginScreen').style.display = 'flex';
+  setTimeout(() => document.getElementById('loginPwd').focus(), 100);
+}
+</script>
+</body>
+</html>
