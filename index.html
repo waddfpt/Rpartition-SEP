@@ -1546,21 +1546,24 @@ function renderTable() {
       const span = divisionSpan[ri];
       // Note de division : récupère la note du premier état de la division
       const divNote = state.rows.find(r => r.cls === row.cls)?.note || '';
-      const noteIcon = divNote ? ' 📝' : '';
       const noteTitle = divNote ? escQ(divNote) : 'Cliquer sur 📝 pour ajouter une note';
+      // Total H/P de la division (somme de la colonne H/P de toutes les lignes)
+      const divHP = filteredRows
+        .filter(r => r.cls === row.cls)
+        .reduce((s, r) => s + (r.hp || 0), 0);
       tbody += `<td class="col-class col-class-merged" rowspan="${span}">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:center">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:center;padding:2px">
           <span style="font-weight:700;font-size:11px;color:var(--accent2)">${row.cls}</span>
+          ${divHP > 0 ? `<span style="font-size:10px;font-weight:700;color:#1d6fa4;background:#eef5fb;border-radius:8px;padding:1px 6px" title="Total H/P de la division">${fmt(divHP)}h</span>` : ''}
           <button onclick="editDivisionNote('${escQ(row.cls)}')" 
             title="${noteTitle}"
-            style="background:none;border:none;cursor:pointer;font-size:13px;padding:0;opacity:${divNote?1:0.35}" 
-            title="${noteTitle}">📝</button>
+            style="background:none;border:none;cursor:pointer;font-size:12px;padding:0;opacity:${divNote?1:0.3}">📝</button>
         </div>
       </td>`;
     }
     tbody += `<td class="col-disc">${row.disc}</td>`;
     // CTRL (sticky, after DISCIPLINE)
-    tbody += `<td class="${ctrlCls}" style="text-align:center">${assignedSum > 0 ? (Number.isInteger(assignedSum) ? assignedSum : assignedSum.toFixed(2).replace(/\.?0+$/,'')) : ''}</td>`;
+    tbody += `<td class="${ctrlCls}" style="text-align:center">${assignedSum > 0 ? (Number.isInteger(assignedSum) ? assignedSum : fmt(assignedSum)) : ''}</td>`;
 
     // Horaires columns — toutes figées jusqu'à H/P inclus
     const horaireSticky = {stms:'sticky-stms', biotech:'sticky-bio', he:'sticky-he', clent:'sticky-cl', g:'sticky-g', nbg:'sticky-nbg', hp:'sticky-hp'};
@@ -1590,7 +1593,7 @@ function renderTable() {
   tbody += '<td class="col-class" style="color:var(--accent2);font-weight:700">TOTAL</td>';
   tbody += '<td class="col-disc" style="color:var(--accent2);font-weight:700">Heures attribuées</td>';
   const grandAssigned = filteredRows.reduce((s, r) => s + teachers.reduce((ss, t) => ss + ((r.vals||{})[t.id]||0), 0), 0);
-  tbody += `<td class="sticky-ctrl ctrl-col" style="text-align:center">${grandAssigned > 0 ? grandAssigned.toFixed(1).replace('.0','') : ''}</td>`;
+  tbody += `<td class="sticky-ctrl ctrl-col" style="text-align:center">${grandAssigned > 0 ? fmt(grandAssigned) : ''}</td>`;
   const horaireSticky2 = {stms:'sticky-stms', biotech:'sticky-bio', he:'sticky-he', clent:'sticky-cl', g:'sticky-g', nbg:'sticky-nbg', hp:'sticky-hp'};
   ['stms','biotech','he','clent','g','nbg','hp'].forEach(k => {
     const sum = filteredRows.reduce((s, r) => s + (r[k] || 0), 0);
@@ -1621,7 +1624,7 @@ function renderTable() {
     const hsa = assigned - t.quota;
     let cls = 'row-hsa-ok';
     if (Math.abs(hsa) > 0.01) cls = hsa > 0 ? 'row-hsa-warn' : 'row-hsa-danger';
-    const label = hsa === 0 ? '0' : (hsa > 0 ? '+' : '') + hsa.toFixed(2).replace(/\.?0+$/,'');
+    const label = hsa === 0 ? '0' : fmtHSA(hsa);
     const isGroupStart = t.group !== lastGroupHsa;
     lastGroupHsa = t.group;
     const gc = getGroupColor(t.group);
@@ -1676,7 +1679,7 @@ function editHoraire(ri, key, cell) {
   // Pour H/P : afficher le mode de calcul actuel
   const isHP = key === 'hp';
   const isManual = stateRow ? !!stateRow.hp_manual : false;
-  const autoVal = stateRow ? Math.round(((stateRow.nbg||0)*(stateRow.g||0)+(stateRow.clent||0))*100)/100 : 0;
+  const autoVal = stateRow ? (stateRow.nbg||0)*(stateRow.g||0)+(stateRow.clent||0) : 0;
 
   let extraInfo = '';
   if (isHP) {
@@ -1820,7 +1823,7 @@ function saveModalValue() {
         const nbg = stateRow.nbg || 0;
         const g   = stateRow.g   || 0;
         const cle = stateRow.clent || 0;
-        stateRow.hp = Math.round((nbg * g + cle) * 100) / 100;
+        stateRow.hp = nbg * g + cle;
       }
     }
   }
@@ -2167,6 +2170,23 @@ function updateTeacherQuota(inp) {
 
 function escQ(s) { return (s||'').replace(/'/g,"&#39;"); }
 
+// ── Formate un nombre sans arrondi : supprime les zéros inutiles en fin de décimale.
+// Ex : 7.50 → "7.5" | 7.00 → "7" | 7.25 → "7.25" | 0 → ""
+function fmt(v, showZero) {
+  if (!v && v !== 0) return '';
+  if (v === 0) return showZero ? '0' : '';
+  // Utilise une précision suffisante (10 décimales) pour éviter les erreurs float,
+  // puis supprime les zéros de fin sans arrondir.
+  const s = parseFloat(v.toPrecision(10)).toString();
+  return s;
+}
+
+// Formate avec signe pour HSA (+7.5 / -3 / 0)
+function fmtHSA(v) {
+  const s = fmt(v, true);
+  return v > 0.0001 ? '+' + s : s;
+}
+
 // ── Tri alphabétique des enseignants au sein de chaque groupe,
 //    en préservant l'ordre des groupes défini dans state.groupOrder ──
 function sortTeachersAlpha() {
@@ -2317,7 +2337,7 @@ function generateClassSynthese() {
       <div style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
         <div style="background:#e8ecf0;padding:7px 12px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-weight:700;font-size:13px;color:var(--accent2)">${cls}</span>
-          <span style="font-size:12px;font-weight:700;color:var(--text);background:#fff;padding:1px 10px;border-radius:10px;border:1px solid var(--border)">${totalHeures.toFixed(2).replace(/\.?0+$/,'')}h au total</span>
+          <span style="font-size:12px;font-weight:700;color:var(--text);background:#fff;padding:1px 10px;border-radius:10px;border:1px solid var(--border)">${fmt(totalHeures, true)}h au total</span>
         </div>
         <div style="padding:4px 0">
           ${teacherEntries.length === 0
@@ -2335,7 +2355,7 @@ function generateClassSynthese() {
                     <tr style="border-bottom:1px solid #f0f0f0">
                       <td style="padding:4px 12px;color:var(--accent2);font-weight:600">${e.teacherName}</td>
                       <td style="padding:4px 12px;color:var(--text)">${e.disc}</td>
-                      <td style="padding:4px 12px;text-align:right;color:var(--text);font-weight:600">${e.hours.toFixed(2).replace(/\.?0+$/,'')}h</td>
+                      <td style="padding:4px 12px;text-align:right;color:var(--text);font-weight:600">${fmt(e.hours)}h</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -2367,13 +2387,13 @@ function printClassSynthese() {
 
   lastClassSyntheseData.forEach(({ cls, teacherEntries, totalHeures }) => {
     bodyHtml += `
-      <h2>${cls} <span class="total">— ${totalHeures.toFixed(2).replace(/\.?0+$/,'')}h au total</span></h2>
+      <h2>${cls} <span class="total">— ${fmt(totalHeures, true)}h au total</span></h2>
       ${teacherEntries.length === 0
         ? '<p class="empty">Aucun enseignant assigné sur cette classe.</p>'
         : `<table>
             <thead><tr><th>Enseignant</th><th>Discipline</th><th>Heures</th></tr></thead>
             <tbody>
-              ${teacherEntries.map(e => `<tr><td>${e.teacherName}</td><td>${e.disc}</td><td>${e.hours.toFixed(2).replace(/\.?0+$/,'')}h</td></tr>`).join('')}
+              ${teacherEntries.map(e => `<tr><td>${e.teacherName}</td><td>${e.disc}</td><td>${fmt(e.hours)}h</td></tr>`).join('')}
             </tbody>
           </table>`
       }
@@ -2622,17 +2642,17 @@ function renderSynthese() {
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:var(--accent2);font-family:'Calibri','Carlito',sans-serif">${totalHP.toFixed(1)}h</div>
+        <div style="font-size:24px;font-weight:700;color:var(--accent2);font-family:'Calibri','Carlito',sans-serif">${fmt(totalHP, true)}h</div>
         <div style="font-size:11px;color:var(--muted)">Total H/P</div>
         <div style="font-size:10px;color:var(--muted);margin-top:3px;font-style:italic">Σ colonne Quota (enseignants)</div>
       </div>
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:var(--ok);font-family:'Calibri','Carlito',sans-serif">${totalAssigned.toFixed(1)}h</div>
+        <div style="font-size:24px;font-weight:700;color:var(--ok);font-family:'Calibri','Carlito',sans-serif">${fmt(totalAssigned, true)}h</div>
         <div style="font-size:11px;color:var(--muted)">Total attribué</div>
         <div style="font-size:10px;color:var(--muted);margin-top:3px;font-style:italic">Σ heures enseignants attribuées</div>
       </div>
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center">
-        <div style="font-size:24px;font-weight:700;color:${hsaColor};font-family:'Calibri','Carlito',sans-serif">${totalHSA > 0 ? '+' : ''}${totalHSA.toFixed(1)}h</div>
+        <div style="font-size:24px;font-weight:700;color:${hsaColor};font-family:'Calibri','Carlito',sans-serif">${totalHSA > 0 ? '+' : ''}${fmt(Math.abs(totalHSA), true)}h</div>
         <div style="font-size:11px;color:var(--muted)">Total HSA</div>
         <div style="font-size:10px;color:var(--muted);margin-top:3px;font-style:italic">Σ soldes (attribué – quota)</div>
       </div>
@@ -2671,9 +2691,9 @@ function renderSynthese() {
           const groupHsaColor = Math.abs(groupHsa) < 0.01 ? 'var(--ok)' : groupHsa > 0 ? 'var(--warn)' : 'var(--danger)';
           html += `<tr>
             <td colspan="2" style="background:#fde8cc;color:#7a3b00;font-weight:700;font-size:11px;padding:4px 12px;border:1px solid #f0c080;text-align:right;font-style:italic">Sous-total ${lastGroup}</td>
-            <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${groupQuota.toFixed(1)}h</td>
-            <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${groupAssigned.toFixed(1)}h</td>
-            <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:${groupHsaColor}">${groupHsa > 0 ? '+' : ''}${groupHsa.toFixed(2)}</td>
+            <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${fmt(groupQuota, true)}h</td>
+            <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${fmt(groupAssigned, true)}h</td>
+            <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:${groupHsaColor}">${fmtHSA(groupHsa)}</td>
             <td colspan="2" style="background:#fde8cc;border:1px solid #f0c080"></td>
           </tr>`;
           groupQuota = 0; groupAssigned = 0;
@@ -2695,8 +2715,8 @@ function renderSynthese() {
         <td style="border:1px solid var(--border);padding:5px 10px;color:var(--accent2)">${t.name}</td>
         <td style="border:1px solid var(--border);padding:5px 10px;color:var(--muted);text-align:center;font-size:11px">${t.group}</td>
         <td style="border:1px solid var(--border);padding:5px 10px;text-align:center">${t.quota}h</td>
-        <td style="border:1px solid var(--border);padding:5px 10px;text-align:center;color:var(--text)">${assigned.toFixed(1)}h</td>
-        <td style="border:1px solid var(--border);padding:5px 10px;text-align:center;color:${hsaColor};font-weight:700">${hsa > 0 ? '+' : ''}${hsa.toFixed(2)}</td>
+        <td style="border:1px solid var(--border);padding:5px 10px;text-align:center;color:var(--text)">${fmt(assigned, true)}h</td>
+        <td style="border:1px solid var(--border);padding:5px 10px;text-align:center;color:${hsaColor};font-weight:700">${fmtHSA(hsa)}</td>
         <td style="border:1px solid var(--border);padding:5px 10px;min-width:120px">
           <div style="background:var(--surface2);border-radius:3px;height:8px;overflow:hidden">
             <div style="background:${barColor};width:${pct}%;height:100%;border-radius:3px;transition:width 0.3s"></div>
@@ -2715,9 +2735,9 @@ function renderSynthese() {
     const groupHsaColor = Math.abs(groupHsa) < 0.01 ? 'var(--ok)' : groupHsa > 0 ? 'var(--warn)' : 'var(--danger)';
     html += `<tr>
       <td colspan="2" style="background:#fde8cc;color:#7a3b00;font-weight:700;font-size:11px;padding:4px 12px;border:1px solid #f0c080;text-align:right;font-style:italic">Sous-total ${lastGroup}</td>
-      <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${groupQuota.toFixed(1)}h</td>
-      <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${groupAssigned.toFixed(1)}h</td>
-      <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:${groupHsaColor}">${groupHsa > 0 ? '+' : ''}${groupHsa.toFixed(2)}</td>
+      <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${fmt(groupQuota, true)}h</td>
+      <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:#7a3b00">${fmt(groupAssigned, true)}h</td>
+      <td style="background:#fde8cc;border:1px solid #f0c080;padding:4px 10px;text-align:center;font-weight:700;color:${groupHsaColor}">${fmtHSA(groupHsa)}</td>
       <td colspan="2" style="background:#fde8cc;border:1px solid #f0c080"></td>
     </tr>`;
   }
@@ -2728,9 +2748,9 @@ function renderSynthese() {
   const grandPct = grandQuota > 0 ? Math.min(100, (grandAssigned / grandQuota) * 100) : 0;
   html += `<tr>
     <td colspan="2" style="background:#d6e4f0;color:var(--accent2);font-weight:700;font-size:12px;padding:6px 12px;border:1px solid #b0c8e0;text-align:right">TOTAL GÉNÉRAL</td>
-    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px;text-align:center;font-weight:700;color:var(--accent2)">${grandQuota.toFixed(1)}h</td>
-    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px;text-align:center;font-weight:700;color:var(--accent2)">${grandAssigned.toFixed(1)}h</td>
-    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px;text-align:center;font-weight:700;color:${grandHsaColor}">${grandHsa > 0 ? '+' : ''}${grandHsa.toFixed(2)}</td>
+    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px;text-align:center;font-weight:700;color:var(--accent2)">${fmt(grandQuota, true)}h</td>
+    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px;text-align:center;font-weight:700;color:var(--accent2)">${fmt(grandAssigned, true)}h</td>
+    <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px;text-align:center;font-weight:700;color:${grandHsaColor}">${fmtHSA(grandHsa)}</td>
     <td style="background:#d6e4f0;border:1px solid #b0c8e0;padding:6px 10px">
       <div style="background:var(--surface2);border-radius:3px;height:8px;overflow:hidden">
         <div style="background:var(--accent);width:${grandPct}%;height:100%;border-radius:3px"></div>
@@ -2794,7 +2814,7 @@ function printSyntheseServices() {
       grpQ += t.quota; grpA += a;
     }
 
-    rows2 += `<tr><td>${t.name}</td><td>${t.group}</td><td>${t.quota}h</td><td>${a.toFixed(1)}h</td><td class="${Math.abs(hsa)<0.01?'ok':hsa>0?'warn':'danger'}">${hsa>0?'+':''}${hsa.toFixed(2)}h</td></tr>`;
+    rows2 += `<tr><td>${t.name}</td><td>${t.group}</td><td>${t.quota}h</td><td>${a.toFixed(1)}h</td><td class="${Math.abs(hsa)<0.01?'ok':hsa>0?'warn':'danger'}">${fmtHSA(hsa)}h</td></tr>`;
   });
 
   // Last group subtotal
@@ -2900,11 +2920,11 @@ function showTeacherDetail(tid) {
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;color:var(--muted)">Attribué</div>
-        <div style="font-size:14px;font-weight:700;color:var(--accent2)">${grandTotal.toFixed(2).replace(/\\.?0+$/,'') || 0}h</div>
+        <div style="font-size:14px;font-weight:700;color:var(--accent2)">${fmt(grandTotal, true)}h</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;color:var(--muted)">HSA</div>
-        <div style="font-size:14px;font-weight:700;color:${hsaColor}">${hsa>0?'+':''}${hsa.toFixed(2).replace(/\\.?0+$/,'') || 0}h</div>
+        <div style="font-size:14px;font-weight:700;color:${hsaColor}">${fmtHSA(hsa).replace(/\\.?0+$/,'') || 0}h</div>
       </div>
     </div>
   `;
@@ -2919,13 +2939,13 @@ function showTeacherDetail(tid) {
         <div style="margin-bottom:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
           <div style="background:#e8ecf0;padding:6px 12px;display:flex;justify-content:space-between;align-items:center">
             <span style="font-weight:700;font-size:12.5px;color:var(--accent2)">${cls}</span>
-            <span style="font-size:12px;font-weight:700;color:var(--text);background:#fff;padding:1px 9px;border-radius:10px;border:1px solid var(--border)">${data.total.toFixed(2).replace(/\\.?0+$/,'')}h</span>
+            <span style="font-size:12px;font-weight:700;color:var(--text);background:#fff;padding:1px 9px;border-radius:10px;border:1px solid var(--border)">${fmt(data.total, true)}h</span>
           </div>
           <div style="padding:4px 12px 6px">
             ${data.items.map(it => `
               <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
                 <span style="color:var(--text)">${it.disc}</span>
-                <span style="color:var(--accent2);font-weight:600;flex-shrink:0;margin-left:10px">${it.hours.toFixed(2).replace(/\\.?0+$/,'')}h</span>
+                <span style="color:var(--accent2);font-weight:600;flex-shrink:0;margin-left:10px">${fmt(it.hours)}h</span>
               </div>`).join('')}
           </div>
         </div>`;
@@ -2985,10 +3005,10 @@ function printTeacherDetail(tid) {
     <table><thead><tr><th>Classe</th><th>Discipline</th><th>Heures</th></tr></thead><tbody>
     ${classNames.map(cls => `
       <tr class="cls-row"><td colspan="2">${cls}</td><td>${byClass[cls].total.toFixed(2).replace(/\\.?0+$/,'')}h</td></tr>
-      ${byClass[cls].items.map(it => `<tr><td></td><td>${it.disc}</td><td>${it.hours.toFixed(2).replace(/\\.?0+$/,'')}h</td></tr>`).join('')}
+      ${byClass[cls].items.map(it => `<tr><td></td><td>${it.disc}</td><td>${fmt(it.hours)}h</td></tr>`).join('')}
     `).join('')}
     </tbody></table>
-    <div class="total">Total attribué : ${grandTotal.toFixed(2).replace(/\\.?0+$/,'')}h</div>
+    <div class="total">Total attribué : ${fmt(grandTotal, true)}h</div>
     </body></html>
   `);
   win.document.close();
@@ -3004,7 +3024,7 @@ function updateStats() {
   document.getElementById('statClasses').textContent = new Set(state.rows.map(r => r.cls)).size;
   document.getElementById('statRows').textContent = state.rows.length;
   const total = state.rows.reduce((s, r) => s + (r.hp || 0), 0);
-  document.getElementById('statTotal').textContent = total.toFixed(1);
+  document.getElementById('statTotal').textContent = fmt(total, true);
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -3479,7 +3499,7 @@ async function doLogin() {
 //      → GITHUB_REPO = 'mon-depot'
 // ════════════════════════════════════════════════════════════════════
 const GITHUB_USER  = 'waddfpt';
-const GITHUB_REPO  = 'Rpartition-SEP'; // ← REMPLACER par le vrai nom du dépôt
+const GITHUB_REPO  = 'MON-DEPOT'; // ← REMPLACER par le vrai nom du dépôt
 const GITHUB_FILE  = 'data.json'; // nom fixe du fichier JSON dans le dépôt
 const GITHUB_URL   = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/${GITHUB_FILE}`;
 
