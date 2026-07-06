@@ -17,8 +17,8 @@
     },
     {
       "id": "tn_1782382654074",
-      "name": "COMPL. PICOT",
-      "quota": 0,
+      "name": "BMP STMS X",
+      "quota": 10,
       "group": "STMS P7300"
     },
     {
@@ -118,15 +118,15 @@
       "group": "BSE P7200"
     },
     {
-      "id": "t27",
-      "name": "CANIGUY L.",
+      "id": "t28",
+      "name": "BMP LET.HIST",
       "quota": 12,
       "group": "LET. HIST."
     },
     {
-      "id": "t28",
-      "name": "COMPL. CANIGUY",
-      "quota": 6,
+      "id": "t27",
+      "name": "CANIGUY L.",
+      "quota": 12,
       "group": "LET. HIST."
     },
     {
@@ -190,15 +190,15 @@
       "group": "ECO-GESTION"
     },
     {
-      "id": "t39",
-      "name": "BRETAGNE G.",
-      "quota": 12,
+      "id": "t32",
+      "name": "BMP ARTS APP.",
+      "quota": 6,
       "group": "ARTS APP."
     },
     {
-      "id": "t32",
-      "name": "COMPLEMENT BRETAGNE",
-      "quota": 0,
+      "id": "t39",
+      "name": "BRETAGNE G.",
+      "quota": 12,
       "group": "ARTS APP."
     },
     {
@@ -414,7 +414,8 @@
       "vals": {
         "t27": 2,
         "t32": 1,
-        "t17": 1.5
+        "t17": 1.5,
+        "t37": 1
       },
       "note": "AP : ASS. PEDA 2H00"
     },
@@ -487,9 +488,9 @@
       "nbg": 2,
       "hp": 5,
       "vals": {
-        "t14": 1.5,
+        "t14": 1,
         "tn_1782150743394": 2,
-        "tn_1782382654074": 1.5
+        "tn_1782382654074": 2
       }
     },
     {
@@ -590,8 +591,9 @@
       "nbg": 2,
       "hp": 5.5,
       "vals": {
-        "t37": 2,
-        "tn_1782382654074": 1.5
+        "t37": 1,
+        "tn_1782382654074": 1.5,
+        "t28": 1
       }
     },
     {
@@ -1199,14 +1201,14 @@
       "cls": "1ASSP",
       "disc": "PSE",
       "stms": 0,
-      "biotech": 1,
-      "he": 0.5,
+      "biotech": 1.5,
+      "he": 1.5,
       "clent": 0.5,
-      "g": 0.5,
+      "g": 1,
       "nbg": 2,
-      "hp": 1.5,
+      "hp": 2.5,
       "vals": {
-        "t21": 1.5
+        "t21": 2.5
       }
     },
     {
@@ -1553,7 +1555,7 @@
       "vals": {
         "t38": 0.75,
         "t29": 0.75,
-        "t21": 0.5
+        "t18": 0.5
       }
     },
     {
@@ -2196,7 +2198,8 @@
       "nbg": 1,
       "hp": 6,
       "vals": {
-        "t18": 6
+        "t18": 2,
+        "tn_1782382654074": 4
       }
     },
     {
@@ -2268,7 +2271,8 @@
       "hp": 0,
       "vals": {
         "t19": 18,
-        "t41": 3
+        "t41": 3,
+        "t16": 1
       }
     }
   ],
